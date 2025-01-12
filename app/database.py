@@ -152,7 +152,7 @@ _logfile = None
 if LOG_TO_FILE:
     os.makedirs('logs',exist_ok=True)
     name = time.strftime('%Y-%m-%d_%H-%M-%S',_now().timetuple())
-    _logname = f'logs/{time.strftime('%Y-%m-%d_%H-%M-%S',_now().timetuple())}'
+    _logname = f'logs/{name}.log'
     _logfile = open(_logname,'a')
 
 def _stderr_write(s:str):
