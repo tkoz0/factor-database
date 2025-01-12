@@ -18,7 +18,9 @@ compatibility has not been evaluated yet.
 - Quart (0.19)
 - PostgreSQL (16)
 - Gmpy2 (2.2.1)
+  - requires libgmp-dev package (ubuntu)
 - CyPari2 (2.2.0)
+  - requires libpari-dev package (ubuntu)
 
 # installation
 
