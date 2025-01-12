@@ -17,6 +17,7 @@ compatibility has not been evaluated yet.
 - Python (3.12)
 - Quart (0.19)
 - PostgreSQL (16)
+- Psycopg (3.2.3)
 - Gmpy2 (2.2.1)
   - requires libgmp-dev package (ubuntu)
 - CyPari2 (2.2.0)
