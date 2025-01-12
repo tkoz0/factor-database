@@ -53,6 +53,7 @@ def getPageInfo(token:str|None = None):
 
     if session is None: # not logged in
         return {
+            'remote_addr': quart.request.remote_addr,
             'logged_in': False,
             'headlinks': pages_header_anon,
             'footlinks': pages_footer_anon,
@@ -63,6 +64,7 @@ def getPageInfo(token:str|None = None):
         user = getUser(session.user_id)
         assert user is not None, 'internal error'
         return {
+            'remote_addr': quart.request.remote_addr,
             'logged_in': True,
             'username': user.username,
             'email': user.email,
