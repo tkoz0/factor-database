@@ -5,7 +5,7 @@ After=network.target
 [Service]
 User=fdb
 WorkingDirectory=/home/fdb/factor-database
-ExecStart=/home/fdb/.local/bin/hypercorn --access-logfile access.log --workers 1 -b 127.0.0.1:65519 main:app
+ExecStart=/home/fdb/.local/bin/hypercorn --access-logfile access.log --error-logfile error.log --workers 1 -b 127.0.0.1:65519 main:app
 Restart=always
 
 [Install]
