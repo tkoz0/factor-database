@@ -1,0 +1,48 @@
+{% extends 'base.jinja' %}
+
+{% block title %}account{% endblock %}
+
+{% block content %}
+<h2>Account</h2>
+
+{% if logged_in %}
+<div id="account_details">
+<table>
+    <tr>
+        <td>Username:</td>
+        <td>{{username|e}}</td>
+    </tr>
+    <tr>
+        <td>Email:</td>
+        <td>{{email|e}}</td>
+    </tr>
+    <tr>
+        <td>Your name:</td>
+        <td>{{fullname|e}}</td>
+    </tr>
+    <tr>
+        <td>Account type:</td>
+        <td>{% if is_admin %}admin{% else %}user{% endif %}</td>
+    </tr>
+</table>
+<div id="change_password">
+    <form action="/account" method="post">
+    <input name="password" type="password" placeholder="current password" maxlength="128" /><br />
+    <input name="new_password" type="password" placeholder="new password" maxlength="128" /><br />
+    <input name="verify_password" type="password" placeholder="verify password" maxlength="128" /><br />
+    <input type="submit" value="change password" />
+    </form>
+</div>
+<span id="logout_link">
+    <a href="/logout">Click here to log out.</a><br />
+    <span>Session expires at:</span><br />
+    {{new_sess_exp}}
+</span>
+</div>
+<p>To request changes to information associated with your account or account
+deletion, please send email to <a href="mailto:{{admin_email}}">{{admin_email}}</a>
+from the address associated with your account.</p>
+{% else %}
+<p>You are not logged in.</p>
+{% endif %}
+{% endblock %}

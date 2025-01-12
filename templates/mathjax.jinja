@@ -1,0 +1,20 @@
+    <script type="text/javascript" async src="/static/mathjax/tex-svg-full.js"></script>
+    <script type="text/javascript">
+    window.MathJax = {
+        ...window.MathJax,
+        tex: {
+            ...window.MathJax.tex,
+            inlineMath: [['\\(','\\)']],
+            displayMath: [['\\[','\\]']],
+            formatError: (jax,err) => {
+                console.log(jax,err);
+                return jax.formatError(err);
+            },
+            macros: {
+            }
+        },
+        options: {
+            ...window.MathJax.options
+        }
+    };
+    </script>

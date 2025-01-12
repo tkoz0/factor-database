@@ -1,0 +1,305 @@
+/* Factor Database CSS */
+
+/* main layout */
+
+body {
+    color: black;
+    font-family: sans-serif;
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+#header {
+    background: gray;
+    padding: 16px;
+    display: flex;
+}
+
+#title {
+    font-size: 2em;
+    font-weight: bold;
+    display: inline-block;
+}
+
+#content {
+    padding: 16px;
+    flex: 100%;
+}
+
+#footer {
+    background: gray;
+    padding: 16px;
+}
+
+/* post request message box */
+
+#post_msg {
+    text-align: center;
+}
+
+.post_ok {
+    background: lightgreen;
+}
+
+.post_bad {
+    background: red;
+}
+
+/* navigation bars */
+
+#navbar {
+    height: 100%;
+    margin: auto 0 auto auto;
+}
+
+.navlink {
+    padding: 4px;
+    display: inline-block;
+}
+
+.current_page {
+    padding: 4px;
+    background: lightgray;
+}
+
+.navlink:hover {
+    background: lightgray;
+}
+
+#footer_links {
+    margin: auto;
+    display: flex;
+    justify-content: center;
+}
+
+.footer_link {
+    margin: 0 8px;
+}
+
+/* login form */
+
+#login_form {
+    display: block;
+    width: 128px;
+    margin: 0 auto;
+}
+
+#login_form > * {
+    text-align: center;
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+#login_form > :first-child {
+    font-size: 2em;
+}
+
+/* account page */
+
+#account_details {
+    display: flex;
+}
+
+#account_details table {
+    border-collapse: collapse;
+}
+
+#account_details td {
+    border: 1px solid black;
+    padding: 4px;
+}
+
+#account_details > * {
+    display: inline-block;
+}
+
+#change_password {
+    height: 100%;
+    margin: auto 0;
+    margin-left: 16px;
+}
+
+#change_password input {
+    box-sizing: border-box;
+    width: 100%;
+}
+
+#logout_link {
+    height: 100%;
+    margin: auto 0;
+    margin-left: 16px;
+}
+
+/* factor table */
+
+#factor_table {
+    border-collapse: collapse;
+}
+
+#factor_table tr {
+    border-top: 1px solid black;
+    border-bottom: 1px solid black;
+}
+
+#factor_table td:first-child {
+    padding-right: 10px;
+}
+
+#table_page_nav a {
+    margin-left: 5px;
+}
+
+#table_page_nav input[type=number] {
+    width: 64px;
+}
+
+.factor {
+    word-break: break-all;
+    word-wrap: break-word;
+    text-decoration: none;
+}
+
+.factor_link {
+    word-break: break-all;
+    word-wrap: break-word;
+    text-decoration: none;
+}
+
+.small_factor {
+    color: black;
+}
+
+.factor_link:hover {
+    text-decoration: underline;
+}
+
+.factor_prime {
+    color: blue;
+}
+
+.factor_prob {
+    color: green;
+}
+
+.factor_comp {
+    color: red;
+}
+
+.factor_unknown {
+    color: purple;
+}
+
+.subcategory_link {
+    display: block;
+}
+
+.num_comp:hover {
+    background: lightgray;
+}
+
+.num_incomp {
+    background: yellow;
+}
+
+.num_incomp:hover {
+    background: darkgray;
+}
+
+/* factor info page */
+
+#factor_info {
+    border-collapse: collapse;
+}
+
+#factor_info td:first-child {
+    padding-right: 8px;
+}
+
+#factor_info td:last-child {
+    padding-left: 8px;
+}
+
+#factor_info td {
+    border-top: 1px solid black;
+    border-bottom: 1px solid black;
+}
+
+#report_factor textarea {
+    box-sizing: border-box;
+    width: 100%;
+    resize: vertical;
+}
+
+/* number info page */
+
+#number_info {
+    border-collapse: collapse;
+}
+
+#number_info td:first-child {
+    padding-right: 8px;
+}
+
+#number_info td:last-child {
+    padding-left: 8px;
+}
+
+#number_info td {
+    border-top: 1px solid black;
+    border-bottom: 1px solid black;
+}
+
+/* other classes */
+
+.hidden {
+    display: none;
+}
+
+.mono {
+    font-family: monospace;
+}
+
+/* admin area */
+
+#admin_stuff {
+    background: orange;
+    padding: 5px;
+    margin-top: 25px;
+}
+
+#admin_stuff form:not(:last-of-type) {
+    margin-bottom: 10px;
+}
+
+#admin_stuff fieldset {
+    border: 1px solid black;
+}
+
+#admin_stuff textarea {
+    background: yellow;
+    box-sizing: border-box;
+    width: 100%;
+    resize: vertical;
+}
+
+#admin_stuff input[type=text] {
+    background: yellow;
+    box-sizing: border-box;
+    width: 100%;
+    font-family: monospace;
+}
+
+#admin_status_table {
+    border-collapse: collapse;
+}
+
+#admin_status_table th {
+    border: 1px solid black;
+}
+
+#admin_status_table td {
+    border: 1px solid black;
+}

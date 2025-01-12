@@ -1,0 +1,27 @@
+{% extends 'base.jinja' %}
+
+{% block title %}login{% endblock %}
+
+{% block content %}
+
+<h2>Login</h2>
+
+{% if logged_in %}
+<p>You are already logged in.</p>
+{% else %}
+<form action="/login" method="post" id="login_form">
+    <div>login</div>
+    <input name="username" type="text" placeholder="username" />
+    <input name="password" type="password" placeholder="password" />
+    <button type="submit">login</button>
+</form>
+{% endif %}
+
+<p>If you have forgotten your login information, send email to
+<a href="mailto:{{admin_email}}">{{admin_email}}</a> from the address associated
+with your account. You will be given a temporary password to use. It is
+recommended that you change it immediately.</p>
+<p>Unfortunately, having a real password reset system requires an email setup
+which is currently not available.</p>
+
+{% endblock %}

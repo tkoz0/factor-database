@@ -1,0 +1,11 @@
+{% extends 'base.jinja' %}
+
+{% block title %}login{% endblock %}
+
+{% block content %}
+{% if post_ok %}
+<p>You are logged in.</p>
+{% else %}
+<p>Invalid login. <a href="/login">Try again</a>.</p>
+{% endif %}
+{% endblock %}

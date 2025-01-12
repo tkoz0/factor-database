@@ -1,0 +1,22 @@
+{
+    "debug_extra": true,
+    "num_bit_lim": 768,
+    "pwd_hash_iters": 100,
+    "session_len_days": 7,
+    "prp_bit_lim": 256,
+    "prove_bit_lim": 128,
+    "table_per_page_default": 20,
+    "table_per_page_limit": 100,
+    "max_content_length": 1048576,
+    "max_factors_length": 65536,
+    "max_details_length": 262144,
+    "db_type": "postgres",
+    "db_host": "localhost",
+    "db_port": 5433,
+    "db_user": "test_fdb",
+    "db_pass": "test_fdb",
+    "db_name": "test_fdb",
+    "db_con_lim": 8,
+    "log_to_file": true,
+    "admin_email": "admin@example.com"
+}

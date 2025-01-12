@@ -1,0 +1,9 @@
+__pycache__
+*.db
+*.sqlite3
+*.log
+/.old
+/static/mathjax
+/logs
+/config.json
+/fdb.service

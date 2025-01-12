@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+    {% block prehead %}{% endblock %}
+    <link rel="stylesheet" type="text/css" href="/static/css/style.css" />
+    <title>{% block title %}TITLE{% endblock %}</title>
+    {% block meta_tags %}
+    <meta content="Factor Database" property="og:title" />
+    <meta content="Website for tracking integer factorization progress." property="og:description" />
+    {% endblock %}
+    {% block posthead %}{% endblock %}
+</head>
+<body>
+
+{%if post_msg %}
+<div id="post_msg" {% if post_ok %} class="post_ok" {% else %} class="post_bad" {% endif %}>
+    <span>{{post_msg}}</span>
+    <button onclick="document.querySelector('#post_msg').remove()">close</button>
+</div>
+{% endif %}
+
+<div id="header">
+{% block header %}
+<div id="title">Factor Database</div>
+<div id="navbar">
+{% for p,url in headlinks %}
+    {% if p == page %}
+    <span class="current_page">{{p}}</span>
+    {% else %}
+    <a href="{{url}}" class="navlink">{{p}}</a>
+    {% endif %}
+{% endfor %}
+{% if logged_in %}
+    <span>(logged in as {{username}})</span>
+{% endif %}
+</div>
+{% endblock %}
+</div>
+
+<div id="content">
+{% block content %}
+CONTENT
+{% endblock %}
+</div>
+
+<div id="footer">
+{% block footer %}
+<span>Factor database is a project by TKoz. Source code is available on
+<a href="https://github.com/tkoz0/factor-database" target="_blank">GitHub</a>.
+Please report issues or bugs.</span><br />
+<div id="footer_links">
+{% for p,url in footlinks %}
+    {% if p == page %}
+    <span class="footer_link current_page">{{p}}</span>
+    {% else %}
+    <a href="{{url}}" class="footer_link navlink">{{p}}</a>
+    {% endif %}
+{% endfor %}
+</div>
+{% endblock %}
+</div>
+
+</body>
+</html>

@@ -1,0 +1,213 @@
+{% extends 'base.jinja' %}
+
+{% block title %}tables{% endblock %}
+
+{% block posthead %}
+{% if is_admin %}
+    <script type="text/javascript" src="/static/js/admin.js"></script>
+{% endif %}
+{% include 'mathjax.jinja' %}
+{% endblock %}
+
+{% block content %}
+
+{% if not is_root %}
+<div id="table_nav">
+    <a href="/tables" class="navlink">tables</a>
+{% for name,link in nav_data %}
+    {% if link == current_path %}
+    &gt; <span class="current_page">{{name}}</span>
+    {% else %}
+    &gt; <a href="{{link}}" class="navlink">{{name}}</a>
+    {% endif %}
+{% endfor %}
+</div>
+{% endif %}
+
+{% if exists %}
+<h2>{{title}}</h2>
+{{info}}
+
+{% if is_table %}
+<h2>Table</h2>
+
+{# page nav #}
+<span id="table_page_nav">
+    Index range: {{start}} &ndash; {{start+count-1}}
+{% if start > 0 %}
+    <a href="/tables/{{path}}?start={{start-count}}&count={{count}}">prev</a>
+{% endif %}
+{% if table != [] %}
+    <a href="/tables/{{path}}?start={{start+count}}&count={{count}}">next</a>
+{% else %}
+    <a href="/tables/{{path}}">return</a>
+{% endif %}
+<form method="get">
+    <input id="nav_start" type="number" min="0" max="1000000" name="start" placeholder="start" value="{{start}}" />
+    <input id="nav_count" type="number" min="1" max="{{max_count}}" name="count" placeholder="count" value="{{count}}" />
+    <input id="nav_submit" type="submit" value="view {{start}}-{{start+count-1}}" />
+</form>
+<script type="text/javascript">
+var start = document.querySelector('#nav_start');
+var count = document.querySelector('#nav_count');
+var result = document.querySelector('#nav_submit');
+function nav_calc() {
+    let sv = Number(start.value);
+    let cv = Number(count.value);
+    result.value = 'view ' + sv + '-' + (sv + cv - 1);
+}
+start.addEventListener('input',() => nav_calc());
+count.addEventListener('input',() => nav_calc());
+</script>
+</span>
+
+{# table data #}
+{% if table == [] %}
+<p>No table data.</p>
+{% else %}
+<p>Format: <span class="small_factor">small prime</span> &times;
+<span class="factor_link factor_prime">proven prime</span><sub>&lt;size&gt;</sub> &times;
+(<span class="factor_link factor_prob">probable prime</span>)<sub>&lt;size&gt;</sub> &times;
+[<span class="factor_link factor_comp">composite</span>]<sub>&lt;size&gt;</sub> &times;
+{<span class="factor_link factor_unknown">unknown</span>}<sub>&lt;size&gt;</sub></p>
+<table id="factor_table">
+    {% for index,expr,factors,num_id,complete in table %}
+    <tr class="{{('num_incomp','num_comp')[complete]}}">
+        <td>{% if not complete %}*{% endif %}
+{% if num_id %}
+            <a href="/number/{{num_id}}">{{index}}: {{expr}}</a>
+{% else %}
+            {{index}}: {{expr}}
+{% endif %}
+        </td>
+        <td>
+{{factors}}
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+{% endif %}
+
+{# category directory #}
+{% else %}
+<h2>Links</h2>
+<div id="subcategories">
+    {% if children_len == 0 %}
+    <p>No subcategories or tables.</p>
+    {% else %}
+    {% for child_title,child_link,child_is_table in children %}
+    <span class="subcategory_link">&gt; <a href="{{child_link}}" class="navlink">{{child_title}}</a>
+    {% if child_is_table %}(table){% else %}(category){%endif %}</span>
+    {% endfor %}
+    {% endif %}
+</div>
+{% endif %}
+
+{% if is_admin %}
+<div id="admin_stuff">
+<h2>Admin</h2>
+{% if not is_table %}
+<fieldset>
+    <legend>change subcategory order (click arrows)</legend>
+    <span>click the buttons to reorder the list</span><br />
+    <ul id="admin_reorder_list">
+        {% for child_name in children_names %}
+        <li>
+            <button>&and;</button>
+            <button>&or;</button>
+            <span>{{child_name}}</span>
+        </li>
+        {% endfor %}
+    </ul>
+    <form method="post">
+        <input id="output_reorder_list" name="reorder_list" value="" type="hidden" />
+        <input type="submit" value="reorder subcategories" />
+    </form>
+</fieldset>
+
+<script type="text/javascript">
+(function () {
+    document.querySelectorAll('#admin_reorder_list li').forEach(li => {
+        let btns = li.querySelectorAll('button');
+        btns.forEach((btn,i) => {
+            btn.addEventListener('click', function (e) {
+                admin_reorder_swap(e,[-1,1][i],'li');
+                make_reorder_list_post_data();
+            });
+        });
+    });
+})();
+</script>
+
+<form method="post"><fieldset>
+    <legend>change subcategory order (text list)</legend>
+    <textarea name="reorder_list" rows="{{reorder_list_size+1}}">{{reorder_list_initial|e}}</textarea>
+    <input type="submit" value="reorder subcategories" />
+</fieldset></form>
+
+<form method="post"><fieldset>
+    <legend>add category or table</legend>
+    <input type="text" name="newcat_title" placeholder="title (displayed)" />
+    <input type="text" name="newcat_name" placeholder="name (path)" /><br />
+    <input id="subcat_type_cat" type="radio" name="subcat_type" value="cat" />
+    <label for="subcat_type_cat">category</label>
+    <input id="subcat_type_tab" type="radio" name="subcat_type" value="tab" />
+    <label for="subcat_type_tab">table</label><br />
+    <input type="submit" value="add category/table" />
+</fieldset></form>
+{% endif %}
+<form method="post"><fieldset>
+    <legend>change title or info text</legend>
+    <span>make sure info is proper html</span><br />
+    <input type="text" name="title" value="{{title|e}}" />
+    <textarea name="info" rows="10">{{info|e}}</textarea>
+    <input type="submit" value="edit title/info" />
+</fieldset></form>
+{% if not is_root %}
+<form method="post"><fieldset>
+    <legend>rename</legend>
+    <input type="text" name="new_path" value="{{path|e}}" />
+    <input type="submit" value="rename" />
+</fieldset></form>
+<form method="post"><fieldset>
+    <legend>delete</legend>
+    <input type="text" name="delete_confirm_1" placeholder="type name to confirm" />
+    <input type="submit" value="delete" />
+</fieldset></form>
+{% endif %}
+{% if is_table %}
+<fieldset>
+    <legend>add numbers</legend>
+    <span>no factoring is done automatically, enter space separated factors
+    in the appropriate text box (small factors included)</span><br />
+    <button onclick="append_nums_table_row()">new</button>
+    <table id="admin_add_nums_table">
+    </table>
+    <form id="admin_add_nums_form" method="post">
+        <input type="submit" value="add numbers" />
+    </form>
+</fieldset>
+
+<script type="text/javascript">
+(function () {
+    document.querySelector('#admin_add_nums_form input').addEventListener('click',
+        () => make_add_nums_inputs());
+    append_nums_table_row();
+})();
+</script>
+
+<form method="post"><fieldset>
+    <legend>delete numbers</legend>
+    <input type="text" name="delete_index_list" placeholder="space separated indexes" />
+    <input type="text" name="delete_confirm_2" placeholder="type name to confirm" />
+    <input type="submit" value="delete" />
+</fieldset></form>
+{% endif %}
+</div>
+{% endif %}
+
+{% else %}
+<p>This table/category path does not exist.</p>
+{% endif %}
+
+{% endblock %}

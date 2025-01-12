@@ -1,0 +1,156 @@
+{% extends 'base.jinja' %}
+
+{% block title %}factor{% endblock %}
+
+{% block content %}
+
+{% if exists %}
+<h2>Factor Info</h2>
+<table id="factor_info">
+    <tr>
+        <td>ID</td>
+        <td>{{factor_id}}</td>
+    </tr>
+    <tr>
+        <td>Size</td>
+        <td>{{factor_len}} digits / {{factor_bits}} bits</td>
+    </tr>
+    <tr>
+        <td>Status</td>
+        <td>
+            {% if primality == 0 %}
+            <span class="factor_comp">composite</span>
+            {% elif primality == 1 %}
+            <span class="factor_prob">probable prime</span>
+            {% elif primality == 2 %}
+            <span class="factor_prime">proven prime</span>
+            {% else %}
+            <span class="factor_unknown">unknown</span>
+            {% endif %}
+        </td>
+    </tr>
+    <tr>
+        <td>Value</td>
+        <td>
+            {% if primality == 0 %}
+            <span class="factor factor_comp">{{factor_value}}</span>
+            {% elif primality == 1 %}
+            <span class="factor factor_prob">{{factor_value}}</span>
+            {% elif primality == 2 %}
+            <span class="factor factor_prime">{{factor_value}}</span>
+            {% else %}
+            <span class="factor factor_unknown">{{factor_value}}</span>
+            {% endif %}
+            <button onclick="navigator.clipboard.writeText('{{factor_value}}')">copy</button>
+        </td>
+    </tr>
+</table>
+
+{% if primality == 0 %}
+<h2>Factorizations</h2>
+<table id="factor_info">
+    <tr>
+        <td rowspan="2">Primary</td>
+        <td>
+        {% if factor1_exists %}
+            (ID: {{factor1_id}})
+            {% if factor1_status == 0 %}
+            <a class="factor factor_link factor_comp" href="/factor/{{factor1_id}}">{{factor1_value}}</a> (composite)
+            {% elif factor1_status == 1 %}
+            <a class="factor factor_link factor_prob" href="/factor/{{factor1_id}}">{{factor1_value}}</a> (probable prime)
+            {% elif factor1_status == 2 %}
+            <a class="factor factor_link factor_prime" href="/factor/{{factor1_id}}">{{factor1_value}}</a> (proven prime)
+            {% else %}
+            <a class="factor factor_link factor_unknown" href="/factor/{{factor1_id}}">{{factor1_value}}</a> (unknown)
+            {% endif %}
+        {% else %}
+            unknown
+        {% endif %}
+        </td>
+    </tr>
+    <tr>
+        <td>
+        {% if factor2_exists %}
+            (ID: {{factor2_id}})
+            {% if factor2_status == 0 %}
+            <a class="factor factor_link factor_comp" href="/factor/{{factor2_id}}">{{factor2_value}}</a> (composite)
+            {% elif factor2_status == 1 %}
+            <a class="factor factor_link factor_prob" href="/factor/{{factor2_id}}">{{factor2_value}}</a> (probable prime)
+            {% elif factor2_status == 2 %}
+            <a class="factor factor_link factor_prime" href="/factor/{{factor2_id}}">{{factor2_value}}</a> (proven prime)
+            {% else %}
+            <a class="factor factor_link factor_unknown" href="/factor/{{factor2_id}}">{{factor2_value}}</a> (unknown)
+            {% endif %}
+        {% else %}
+            unknown
+        {% endif %}
+        </td>
+    </tr>
+    {% for id1,id2 in factors_old %}
+    <tr>
+        <td>Secondary</td>
+        <td>(ID: <a href="/factor/{{id1}}">{{id1}}</a>) &times; (ID: <a href="/factor/{{id2}}">{{id2}}</a>)</td>
+    </tr>
+    {% endfor %}
+</table>
+<p>Primary factorization keeps track of the smallest (known) prime factor.
+Secondary factorizations are old results kept when a new smaller prime factor
+is found, which occasionally happens with ECM.</p>
+{% endif %}
+
+{# factor submission form #}
+{% if primality == -1 or (primality == 0 and not factor1_exists) %}
+<h2>Report Factors</h2>
+<form method="post" id="report_factor">
+    <p>Enter factors here. In order to accept results, the server must find a valid factor here.</p>
+    <textarea name="factors" placeholder="example:&#10;241573142393627673576957439049&#10;45994811347886846310221728895223034301839" rows="4"></textarea>
+    <p>Enter relevant details such as software/hardware used, log file portions,
+    B1 and sigma for GMP-ECM, NFS polynomial, total runtime, etc.
+    This is optional but preferred to have.</p>
+    <textarea name="details" placeholder="example 1: GMP-ECM 7.0.5, B1=250000, sigma=1:4091186291, Intel i7-3770, 24GB DDR3, Windows 10&#10;example 2: cado-nfs, Dell R630, 2x Intel Xeon E5-2698v4, 256GB DDR4, Ubuntu Server 24.04" rows="4"></textarea>
+    <p>Enter your name or leave blank to stay anonymous.</p>
+    {% if logged_in %}
+        <input type="text" name="name" value="{{fullname|e}}" placeholder="name" />
+    {% else %}
+        <input type="text" name="name" value="" placeholder="name" />
+    {% endif %}
+    <p></p>
+    <input type="submit" value="click here to report factorization" />
+</form>
+{% endif %}
+
+{# admin form to set prime/composite status #}
+{% if logged_in and is_admin %}
+<div id="admin_stuff">
+<h2>Admin</h2>
+<form method="post">
+    <span>set as proven prime/composite, prp test will be slow with huge numbers</span>
+    <table id="admin_status_table">
+        <tr><th>set status</th><th>run prp test</th></tr>
+        <tr>
+            <td>
+                <input type="radio" id="primality_2" name="primality" value="2" />
+                <label for="primality_2">prime</label>
+                <br />
+                <input type="radio" id="primality_0" name="primality" value="0" />
+                <label for="primality_0">composite</label>
+            </td>
+            <td>
+                <input type="radio" id="prp_1" name="run_prp" value="1" />
+                <label for="prp_1">yes</label>
+                <br />
+                <input type="radio" id="prp_0" name="run_prp" value="0" />
+                <label for="prp_0">no</label>
+            </td>
+        </tr>
+    </table>
+    <input type="submit" value="click here to change factor status" />
+</form>
+</div>
+{% endif %}
+
+{% else %} {# not exists #}
+<p>No factor with ID {{factor_id}} is stored in the database.</p>
+{% endif %}
+
+{% endblock %}

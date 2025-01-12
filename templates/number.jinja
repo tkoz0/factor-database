@@ -1,0 +1,86 @@
+{% extends 'base.jinja' %}
+
+{% block title %}number{% endblock %}
+
+{% block content %}
+
+{% if exists %}
+<h2>Number Info</h2>
+<table id="number_info">
+    <tr>
+        <td>ID</td>
+        <td>{{number_id}}</td>
+    </tr>
+    <tr>
+        <td>Size</td>
+        <td>{{number_len}} digits / {{number_bits}} bits</td>
+    </tr>
+    <tr>
+        <td>Value</td>
+        <td>
+            <span class="number">{{number_value}}</span>
+            <button onclick="navigator.clipboard.writeText('{{number_value}}')">copy</button>
+        </td>
+    </tr>
+    <tr>
+        <td>Progress</td>
+        <td>{{progress_str}}</td>
+    </tr>
+    <tr>
+        <td>Completed</td>
+        <td>{% if number_complete %}yes{% else %}no{% endif %}</td>
+    </tr>
+    <tr>
+        <td>Small factors</td>
+        <td>{{small_factors}}</td>
+    </tr>
+    <tr>
+        <td>Cofactor</td>
+{% if cofactor_id %}
+        <td>
+            <a href="/factor/{{cofactor_id}}">{{cofactor_value}}</a>
+            ({{cofactor_status}})
+        </td>
+{% else %}
+        <td>none</td>
+{% endif %}
+    </tr>
+</table>
+
+<h2>Factorization</h2>
+<p>Format: number = <span class="small_factor">small prime</span> &times;
+<span class="factor_link factor_prime">proven prime</span><sub>&lt;size&gt;</sub> &times;
+(<span class="factor_link factor_prob">probable prime</span>)<sub>&lt;size&gt;</sub> &times;
+[<span class="factor_link factor_comp">composite</span>]<sub>&lt;size&gt;</sub> &times;
+{<span class="factor_link factor_unknown">unknown</span>}<sub>&lt;size&gt;</sub></p>
+{{number_value}} =
+{{factors_string}}
+
+<h2>Categories</h2>
+<ul>
+    {% for title,index,path in category_list %}
+    <li>
+        <a href="/tables/{{path}}?start={{index}}&count=1">{{title}}</a>
+        (index {{index}})
+    </li>
+    {% endfor %}
+</ul>
+
+{% if is_admin %}
+<div id="admin_stuff">
+<h2>Admin</h2>
+{% if not number_complete %}
+<form method="post">
+    <span>attempt number completion</span>
+    <input type="hidden" name="complete" value="1" />
+    <input type="submit" value="click here" />
+</form>
+{% endif %}
+</div>
+{% endif %}
+
+{% else %}{# not exists #}
+<p>No number with ID {{number_id}} is stored in the database.</p>
+{% endif %}
+
+{% endblock %}

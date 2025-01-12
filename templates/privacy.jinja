@@ -1,0 +1,15 @@
+{% extends 'base.jinja' %}
+
+{% block title %}privacy{% endblock %}
+
+{% block content %}
+<h2>Privacy</h2>
+<p>The following information may be stored</p>
+<ul>
+    <li>Submitted results (associated with your account if logged in)</li>
+    <li>Username, email, hashed password (if you have an account)</li>
+</ul>
+<p>To request changes to information associated with your account or account
+deletion, please send email to <a href="mailto:{{admin_email}}">{{admin_email}}</a>
+from the address associated with your account.</p>
+{% endblock %}

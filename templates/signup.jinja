@@ -1,0 +1,15 @@
+{% extends 'base.jinja' %}
+
+{% block title %}signup{% endblock %}
+
+{% block content %}
+<h2>Signup</h2>
+{% if logged_in %}
+<p>You are already logged in.</p>
+{% endif %}
+<p>To request an account, please send an email to
+<a href="mailto:{{admin_email}}">{{admin_email}}</a> to get a temporary
+password. Please specify your desired username and optionally a display name for
+giving credit to your contributions. Having a proper login system requires an
+email setup which is currently not available.</p>
+{% endblock %}
