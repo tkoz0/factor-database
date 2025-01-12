@@ -37,7 +37,9 @@ if 1:
             'db_name': 'test_fdb',
             'db_con_lim': 8,
             'log_to_file': True,
-            'admin_email': 'admin@example.com'
+            'admin_email': 'admin@example.com',
+            'proxy_fix_mode': None,
+            'proxy_fix_hops': 0
         },f,indent=4)
 
 # import afterward because it creates a connection to the database

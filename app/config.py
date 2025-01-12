@@ -30,7 +30,9 @@ config = {
     'db_name': 'test_fdb',
     'db_con_lim': 64,
     'log_to_file': True,
-    'admin_email': 'admin@example.com'
+    'admin_email': 'admin@example.com',
+    'proxy_fix_mode': 'none',
+    'proxy_fix_hops': 0
 }
 '''
 
@@ -129,3 +131,11 @@ assert isinstance(LOG_TO_FILE,bool)
 # may eventually replace with a proper system for password resets
 ADMIN_EMAIL: str = config['admin_email']
 assert isinstance(ADMIN_EMAIL,str)
+
+# proxy fix middleware settings for hypercorn server
+PROXY_FIX_MODE: str|None = config['proxy_fix_mode']
+PROXY_FIX_HOPS: int = config['proxy_fix_hops']
+assert PROXY_FIX_MODE is None or isinstance(PROXY_FIX_MODE,str)
+assert PROXY_FIX_MODE is None or PROXY_FIX_MODE in ('legacy','modern')
+assert isinstance(PROXY_FIX_HOPS,int)
+assert PROXY_FIX_MODE is None or PROXY_FIX_HOPS > 0

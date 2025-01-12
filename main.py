@@ -13,7 +13,7 @@ from app.factor import bp as factor_blueprint
 from app.root import bp as root_blueprint
 from app.tables import bp as tables_blueprint
 from app.number import bp as number_blueprint
-from app.config import MAX_CONTENT_LENGTH
+from app.config import MAX_CONTENT_LENGTH, PROXY_FIX_MODE, PROXY_FIX_HOPS
 
 app = quart.Quart(__name__)
 app.jinja_env.lstrip_blocks = True
@@ -34,6 +34,7 @@ async def dbcon_close():
     db.closeDatabaseConnections()
     db.closeLogging()
 
+# for development
 if __name__ == '__main__':
     app.run(port=65519,debug=True)
     '''
@@ -44,3 +45,9 @@ if __name__ == '__main__':
     --workers <number of workers>
     note: jinja cache defaults to 50 templates
     '''
+
+# for production, apply proxy fix middleware
+elif PROXY_FIX_MODE is not None:
+    from hypercorn.middleware import ProxyFixMiddleware
+    app = ProxyFixMiddleware(app,mode=PROXY_FIX_MODE, # type:ignore
+                             trusted_hops=PROXY_FIX_HOPS)

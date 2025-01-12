@@ -52,6 +52,7 @@ For development
 - find a better way to update factors with few operations
 - function for removing small factors (64 bit) from the database
 - functions for cleaning up other database data
+- setup more proper testing (quart: app.test_request_context)
 
 # feature goals
 
