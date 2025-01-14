@@ -166,7 +166,7 @@ if 1:
 
 def addnum2(path:tuple[str,...],index:int,value:int,expr:str):
     addnum1(value)
-    db.createCategoryNumber(path,index,value,expr)
+    db.createCategoryNumber(path,index,value,expr,())
 
 # fill some categories with sample numbers
 if 1:

@@ -605,9 +605,10 @@ def _addfac(f:int) -> FactorRow:
                         f'({ret.value.bit_length()} bits)')
         return ret
 
-def addNumber(n:int,fs:list[int]|tuple[int]=[]):
+def addNumber(n:int,fs:list[int]|tuple[int,...]=[]) -> tuple[bool,NumberRow]:
     '''
-    adds a number to the database, exception if n <= 0 or n exists
+    adds a number to the database, exception if n <= 0 or above size limit
+    returns a tuple (True/False for if it was newly added, the row object)
     optional list of prime factors below 2**64 to begin factoring
     for production, try to find all factors below 2**64 before inserting
     '''
@@ -624,7 +625,7 @@ def addNumber(n:int,fs:list[int]|tuple[int]=[]):
         # check if number already exists
         row = _getnumv(n,con)
         if row is not None:
-            raise FDBException(f'number already exists as id {row.id}')
+            return (False,row)
         # note: checking this before insert into numbers should avoid (most?)
         # gaps in id column but this is not necessary
         # factor ids will get gaps when attempting to insert an existing factor
@@ -653,16 +654,51 @@ def addNumber(n:int,fs:list[int]|tuple[int]=[]):
         # add number
         cur = con.execute("insert into numbers"
                           "(value,spf2,spf4,spf8,cof_id) "
-                          "values (%s,%s,%s,%s,%s) returning id;",
+                          "values (%s,%s,%s,%s,%s) returning *;",
                           (_int_to_dbnum(n),spf2b,spf4b,spf8b,cof_id))
-        n_id: int = cur.fetchone()[0] # type:ignore
+        row = NumberRow(cur.fetchone())
         con.commit()
-        _dblog_info(f'number id {n_id} added with cofactor id {cof_id}')
+        _dblog_info(f'number id {row.id} added with cofactor id {cof_id}')
         if DEBUG_EXTRA:
             _dblog_debug(f'number {n} = {spfs} {cof}')
 
         # attempt to complete
-        completeNumber(n_id)
+        completeNumber(row.id)
+        return (True,row)
+
+def deleteNumberByID(i:int) -> bool:
+    '''
+    delete a number from the database (by ID)
+    returns true if this ID does not exist or it is successfully removed
+    '''
+    with _dbcon() as con:
+        try:
+            cur = con.execute("delete from numbers where id = %s "
+                              "returning id;",(i,))
+            row = cur.fetchone()
+            con.commit()
+            if row is not None:
+                _dblog_info(f'deleted number id {row[0]}')
+            return True
+        except:
+            return False
+
+def deleteNumberByValue(n:int) -> bool:
+    '''
+    delete a number from the database (by value)
+    returns true if thihs value does not exist or it is successfully removed
+    '''
+    with _dbcon() as con:
+        try:
+            cur = con.execute("delete from numbers where value = %s "
+                              "returning id;",(_int_to_dbnum(n),))
+            row = cur.fetchone()
+            con.commit()
+            if row is not None:
+                _dblog_info(f'deleted number id {row[0]}')
+            return True
+        except:
+            return False
 
 def _addfac_try(n:int,*fs:int):
     # try adding factor from a list, ignoring exceptions (for recursive calls)
@@ -839,6 +875,40 @@ def addFactor(n:int, f:int):
     # attempt completion of the numbers found previously
     for num_row in num_rows:
         completeNumber(num_row.id)
+
+def deleteFactorByID(i:int) -> bool:
+    '''
+    delete a factor from the database (by ID)
+    returns true if this ID does not exist or it is successfully removed
+    '''
+    with _dbcon() as con:
+        try:
+            cur = con.execute("delete from factors where id = %s "
+                              "returning id;",(i,))
+            row = cur.fetchone()
+            con.commit()
+            if row is not None:
+                _dblog_info(f'deleted factor id {row[0]}')
+            return True
+        except:
+            return False
+
+def deleteFactorByValue(f:int) -> bool:
+    '''
+    delete a factor from the database (by value)
+    returns true if this value does not exist or it is successfully removed
+    '''
+    with _dbcon() as con:
+        try:
+            cur = con.execute("delete from factors where value = %s "
+                              "returning id;",(_int_to_dbnum(f)))
+            row = cur.fetchone()
+            con.commit()
+            if row is not None:
+                _dblog_info(f'deleted factor id {row[0]}')
+            return True
+        except:
+            return False
 
 def _getoldfac(i:int,con:psycopg.Connection) -> list[tuple[int,int]]:
     # returns old factor pairs for factor id i, empty list if no factor id i
@@ -1303,10 +1373,12 @@ def walkCategories(path:tuple[str,...] = ()) \
         return ret
 
 def createCategoryNumber(path:tuple[str,...], index:int,
-                         value:int|str, expr:str):
+                         value:int|str, expr:str,
+                         fs:list[int]|tuple[int,...]):
     '''
     add a number to a category
-    number must already be in database unless it is nonpositive
+    first ensures it exists in the database (for integers >= 2)
+    fs is the factor list passed to addNumber()
     '''
     with _dbcon() as con:
         cat = _getcatp(path,con)
@@ -1321,9 +1393,9 @@ def createCategoryNumber(path:tuple[str,...], index:int,
             nid = None
             valstr = str(value)
 
-        # reference existing number in database
+        # make sure number exists and reference row
         else:
-            num = _getnumv(value,con)
+            _,num = addNumber(value,fs)
             if num is None:
                 raise FDBException('number does not exist')
             nid = num.id
@@ -1337,6 +1409,7 @@ def createCategoryNumber(path:tuple[str,...], index:int,
 def deleteCategoryNumber(path:tuple[str,...], index:int):
     '''
     remove a number from a category
+    also attempts to remove it from the database
     '''
     with _dbcon() as con:
         cat = _getcatp(path,con)
@@ -1344,10 +1417,13 @@ def deleteCategoryNumber(path:tuple[str,...], index:int):
             raise FDBException('category does not exist')
         cat = cat[-1]
 
-        con.execute("delete from sequences where cat_id = %s and index = %s;",
-                    (cat.id,index))
+        cur = con.execute("delete from sequences where cat_id = %s and "
+                          "index = %s returning num_id;",(cat.id,index))
+        row = cur.fetchone()
         con.commit()
-        _dblog_info(f'deleted /{'/'.join(path)} index {index}')
+        if row is not None:
+            _dblog_info(f'deleted /{'/'.join(path)} index {index}')
+            deleteNumberByID(row[0])
 
 def getCategoryNumberInfo(path:tuple[str,...], start:int, count:int) \
         -> list[tuple[int,str,str|NumberRow,list[tuple[int,int,None|int]]]]:

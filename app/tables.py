@@ -224,12 +224,8 @@ def insertNumbers(p:tuple[str,...],indexes:list[str],exprs:list[str],
         arg_i = [int(i) for i in indexes]
         arg_v = [int(v) for v in values]
         for i in range(len(exprs)):
-            try:
-                fs = map(int,factors[i].split())
-                app.database.addNumber(arg_v[i],list(fs))
-            except:
-                pass
-            app.database.createCategoryNumber(p,arg_i[i],arg_v[i],exprs[i])
+            fs = list(map(int,factors[i].split()))
+            app.database.createCategoryNumber(p,arg_i[i],arg_v[i],exprs[i],fs)
         return (f'Successfully created {len(exprs)} number(s).',200,True)
     except Exception as e:
         return (f'Failed to create: {e}',400,False)
