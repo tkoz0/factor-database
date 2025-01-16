@@ -21,6 +21,7 @@ if 1:
             'num_bit_lim': 768,
             'pwd_hash_iters': 100,
             'session_len_days': 7,
+            'renew_sessions': False,
             'min_pwd_len': 3,
             'prp_bit_lim': 256,
             'prove_bit_lim': 128,

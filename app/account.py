@@ -2,6 +2,7 @@ import quart
 
 import app.database
 import app.util
+from app.config import RENEW_SESSIONS
 
 bp = quart.Blueprint('account',__name__)
 
@@ -59,19 +60,22 @@ async def account_page():
     session = app.util.getSession()
     token = None
     new_sess_exp = None
-    if session is not None:
+    exp_time = None
+    if session is not None: # user logged in
+        exp_time = session.expires.replace(microsecond=0)
         try:
             token = quart.request.cookies.get('token')
             assert token is not None, 'internal error'
             token_bytes = bytes.fromhex(token)
             ip = quart.request.remote_addr
-            new_sess_exp = app.database.updateSession(token_bytes,ip)
-            new_sess_exp = new_sess_exp.replace(microsecond=0)
+            if RENEW_SESSIONS:
+                exp_time = app.database.updateSession(token_bytes,ip) \
+                    .replace(microsecond=0)
         except:
             pass
     ret = quart.Response(
         await quart.render_template('account.jinja',page='account',
-                                    new_sess_exp=new_sess_exp,
+                                    exp_time=exp_time,
                                     **app.util.getPageInfo()))
     if token is not None:
         ret.set_cookie('token',token,expires=new_sess_exp)

@@ -3,6 +3,7 @@
     "num_bit_lim": 768,
     "pwd_hash_iters": 100,
     "session_len_days": 7,
+    "renew_sessions": false,
     "prp_bit_lim": 256,
     "prove_bit_lim": 128,
     "table_per_page_default": 20,

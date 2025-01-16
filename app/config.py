@@ -60,6 +60,10 @@ SESSION_LEN_DAYS: int = config['session_len_days']
 assert isinstance(SESSION_LEN_DAYS,int)
 assert SESSION_LEN_DAYS > 0
 
+# whether or not to renew session expiration time
+RENEW_SESSIONS: bool = config['renew_sessions']
+assert isinstance(RENEW_SESSIONS,bool)
+
 # minimum password length
 MIN_PWD_LEN: int = config['min_pwd_len']
 assert isinstance(MIN_PWD_LEN,int)

@@ -35,7 +35,9 @@
 </div>
 <span id="logout_link">
     <a href="/logout">Click here to log out.</a><br />
-    <span>Session expires at: {{new_sess_exp}}</span><br />
+{% if exp_time %}
+    <span>Session expires at: {{exp_time}}</span><br />
+{% endif %}
     <span>Your IP: {{remote_addr}}</span>
 </span>
 </div>
