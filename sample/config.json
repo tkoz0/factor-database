@@ -4,6 +4,7 @@
     "pwd_hash_iters": 100,
     "session_len_days": 7,
     "renew_sessions": false,
+    "min_pwd_len": 3,
     "prp_bit_lim": 256,
     "prove_bit_lim": 128,
     "table_per_page_default": 20,
@@ -19,5 +20,7 @@
     "db_name": "test_fdb",
     "db_con_lim": 8,
     "log_to_file": true,
-    "admin_email": "admin@example.com"
+    "admin_email": "admin@example.com",
+    "proxy_fix_mode": null,
+    "proxy_fix_hops": 0
 }

@@ -4,7 +4,6 @@ import app.util
 import app.maths
 import app.database
 from app.config import MAX_FACTORS_LEN, MAX_DETAILS_LEN
-
 from app.config import _ln2_d_ln10
 
 bp = quart.Blueprint('factor',__name__)

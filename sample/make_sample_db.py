@@ -46,7 +46,7 @@ if 1:
 # import afterward because it creates a connection to the database
 # requires database setup to be done and config.json to exist
 import app.database as db
-import app.maths as nums
+import fdb_numbers.old_maths as nums
 
 # ==============================================================================
 

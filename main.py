@@ -1,10 +1,7 @@
 import quart
-import os
 import sys
 
 import app.database as db
-
-sys.path.append(os.path.dirname(sys.argv[0]))
 
 from app.account import bp as auth_blueprint
 from app.api import bp as api_blueprint
