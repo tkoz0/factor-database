@@ -368,11 +368,12 @@ def prefactor(n:int,ecm_threads:int=0,progress_stream=None) -> list[tuple[int,bo
 
 if __name__ == '__main__':
 
-    for i,line in enumerate(sys.stdin):
-        print(f'\033[94mFACTORING INPUT {i}\033[0m')
-        n = int(line)
+    nums = map(int,sys.stdin)
+
+    for i,n in enumerate(nums):
+        print(f'\033[94mFACTORING INPUT {i}\033[0m',file=sys.stderr)
         if n < 2:
-            print(f'small number {n}')
+            print(f'small number {n}',file=sys.stderr)
         else:
             ret = prefactor(n,0,sys.stderr)
             all_prime = all(p for _,p,_ in ret)
@@ -384,8 +385,8 @@ if __name__ == '__main__':
                 status = '\033[33mPARTIALLY FACTORED\033[0m'
             else:
                 status = '\033[31mNO FACTORS FOUND\033[0m'
-            print(f'INPUT {i} {n}')
+            print(f'INPUT {i} {n}',file=sys.stderr)
             for f in ret:
-                print(f)
-            print(status)
-        print()
+                print(f,file=sys.stderr)
+            print(status,file=sys.stderr)
+        print(file=sys.stderr)

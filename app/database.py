@@ -1,14 +1,15 @@
-import re
+from datetime import datetime, timedelta, UTC
+import hashlib
+import ipaddress
 import os
+import re
+import secrets
+import struct
 import sys
 import time
-import hashlib
-import secrets
-from datetime import datetime, timedelta, UTC
-import struct
+
 import psycopg
 import psycopg.sql
-import ipaddress
 
 from app.config import \
     PWD_HASH_ITERS, SESSION_LEN_DAYS, MIN_PWD_LEN, \
@@ -1373,11 +1374,9 @@ def walkCategories(path:tuple[str,...] = ()) \
         return ret
 
 def createCategoryNumber(path:tuple[str,...], index:int,
-                         value:int|str, expr:str,
-                         fs:list[int]|tuple[int,...]):
+                         value:int|str, expr:str):
     '''
-    add a number to a category
-    first ensures it exists in the database (for integers >= 2)
+    add a number to a category (must exist in database for integers >= 2)
     fs is the factor list passed to addNumber()
     '''
     with _dbcon() as con:
@@ -1395,7 +1394,7 @@ def createCategoryNumber(path:tuple[str,...], index:int,
 
         # make sure number exists and reference row
         else:
-            _,num = addNumber(value,fs)
+            num = _getnumv(value,con)
             if num is None:
                 raise FDBException('number does not exist')
             nid = num.id

@@ -3,7 +3,7 @@ import math
 
 import app.database
 from app.database import Primality
-from app.config import ADMIN_EMAIL
+from app.config import ADMIN_EMAIL,DEBUG_EXTRA
 
 def getSession(token:str|None = None) -> app.database.SessionRow|None:
     '''
@@ -57,7 +57,8 @@ def getPageInfo(token:str|None = None):
             'logged_in': False,
             'headlinks': pages_header_anon,
             'footlinks': pages_footer_anon,
-            'admin_email': ADMIN_EMAIL
+            'admin_email': ADMIN_EMAIL,
+            'debug': DEBUG_EXTRA
         }
 
     else: # logged in
@@ -74,6 +75,7 @@ def getPageInfo(token:str|None = None):
             'headlinks': pages_header_user,
             'footlinks': pages_footer_anon,
             'admin_email': ADMIN_EMAIL,
+            'debug': DEBUG_EXTRA,
             'sess_exp': session.expires.replace(microsecond=0)
         }
 

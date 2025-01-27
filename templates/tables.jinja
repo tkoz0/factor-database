@@ -178,9 +178,8 @@ count.addEventListener('input',() => nav_calc());
 {% if is_table %}
 <fieldset>
     <legend>add numbers</legend>
-    <span>no factoring is done automatically, enter space separated factors
-    in the appropriate text box (small factors included)</span><br />
     <button onclick="append_nums_table_row()">new</button>
+    <span>first add numbers with prefactoring scripts</span>
     <table id="admin_add_nums_table">
     </table>
     <form id="admin_add_nums_form" method="post">

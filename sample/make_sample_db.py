@@ -1,6 +1,6 @@
+import json
 import os
 import sys
-import json
 import time
 t_start = time.time()
 
@@ -46,7 +46,145 @@ if 1:
 # import afterward because it creates a connection to the database
 # requires database setup to be done and config.json to exist
 import app.database as db
-import fdb_numbers.old_maths as nums
+
+# ==============================================================================
+
+def primeSieve(L:int) -> list[int]:
+    '''
+    returns a list of primes below L using odd sieve of eratosthenes
+    '''
+    if L <= 2:
+        return []
+    s = [True]*(L//2)
+    i = 1
+    while True:
+        v = 2*i+1
+        if v*v >= L:
+            break
+        if s[i]:
+            for j in range(v*v//2,L//2,v):
+                s[j] = False
+        i += 1
+    ret = [2]
+    for i in range(1,L//2):
+        if s[i]:
+            ret.append(2*i+1)
+    return ret
+
+def _mp(ps) -> int:
+    r = 1
+    m = 2**61 - 1
+    for p in ps:
+        r = (r*p) % m
+    return r
+
+EXPECTED_LEN = 6542
+EXPECTED_SUM = 202288087
+EXPECTED_MOD = 561521233722712261
+SMALL_PRIME_LIMIT = 2**16
+SMALL_PRIMES_LIST = primeSieve(SMALL_PRIME_LIMIT)
+assert len(SMALL_PRIMES_LIST) == EXPECTED_LEN, \
+    f'expected length {EXPECTED_LEN}'
+assert sum(SMALL_PRIMES_LIST) == EXPECTED_SUM, \
+    f'expected sum {EXPECTED_SUM}'
+assert _mp(SMALL_PRIMES_LIST) == EXPECTED_MOD, \
+    f'expected product {EXPECTED_MOD}'
+# map prime -> index in SMALL_PRIMES_LIST, can be used as a set
+SMALL_PRIMES_INDEX = {p:i for i,p in enumerate(SMALL_PRIMES_LIST)}
+
+def findSmallPrimeFactors(n:int) -> tuple[int,list[int]]:
+    '''
+    small prime factorization
+    returns cofactor and list of small factors found
+    cofactor is 1 if completely factored, otherwise it is a remaining cofactor
+    cofactor may be between small prime limit and its square (proven prime)
+    '''
+    if n <= 0:
+        return n,[]
+    factors = []
+    for p in SMALL_PRIMES_LIST:
+        if p*p > n:
+            break
+        while n % p == 0:
+            factors.append(p)
+            n //= p
+    if 1 < n < SMALL_PRIME_LIMIT:
+        # complete factorization
+        # limit could be raised to SMALL_PRIME_LIMIT**2
+        # but this allows explicitly storing larger factors in database
+        factors.append(n)
+        n = 1
+    return n,factors
+
+def fibonacci(n:int) -> int:
+    '''
+    well known fibonacci sequence
+    f(0)=0,f(1)=1,f(n)=f(n-1)+f(n-2)
+    '''
+    assert n >= 0
+    if n == 0: return 0
+    if n == 1: return 1
+    a,b = 0,1
+    for _ in range(n-1):
+        a,b = b,a+b
+    return b
+
+def lucas(n:int) -> int:
+    '''
+    well known lucas sequence
+    f(0)=2,f(1)=1,f(n)=f(n-1)+f(n-2)
+    '''
+    assert n >= 0
+    if n == 0: return 2
+    if n == 1: return 1
+    a,b = 2,1
+    for _ in range(n-1):
+        a,b = b,a+b
+    return b
+
+def factorial(n:int) -> int:
+    '''
+    product of positive integers <= n, special case for 0
+    0!=1,n!=n*(n-1)!
+    '''
+    assert n >= 0
+    if n == 0: return 1
+    ret = 1
+    for i in range(1,n+1):
+        ret *= i
+    return ret
+
+def primorial(n:int) -> int:
+    '''
+    product of primes <= n
+    n#=product(p<=n|prime(p))
+    '''
+    assert n > 0
+    ret = 1
+    for i in primeSieve(n+1):
+        ret *= i
+    return ret
+
+def compositorial(n:int) -> int:
+    '''
+    product of composites <= n
+    produdct(c<=n|!prime(c))
+    '''
+    assert n > 0
+    primes = set(primeSieve(n+1))
+    ret = 1
+    for i in range(1,n+1):
+        if i not in primes:
+            ret *= i
+    return ret
+
+def repunit(n:int, base:int) -> int:
+    '''
+    number containing n ones in given base
+    (base**n-1)//(base-1) (geometric sum)
+    '''
+    assert base >= 2
+    return (base**n-1)//(base-1)
 
 # ==============================================================================
 
@@ -54,7 +192,7 @@ def addnum1(n:int,fs:list[int]=[]):
     # insert number to database
     try:
         # trial division up to 2^16 for everything
-        _,spf = nums.findSmallPrimeFactors(n)
+        _,spf = findSmallPrimeFactors(n)
         db.addNumber(n,spf+fs)
     except db.FDBException as e:
         print(f'number {n} already in database: {e}')
@@ -72,12 +210,12 @@ if 1:
         addnum1(n)
     print('adding repunit related numbers')
     for n in range(1,100): # repunit
-        addnum1(nums.repunit(n,10))
+        addnum1(repunit(n,10))
         addnum1(10**n+1)
     print('adding factorial related numbers')
     for n in range(2,100): # factorial +- 1
-        addnum1(nums.factorial(n)-1)
-        addnum1(nums.factorial(n)+1)
+        addnum1(factorial(n)-1)
+        addnum1(factorial(n)+1)
 
 def addfac(n:int,f:int):
     # add factor result, ignore errors
@@ -167,26 +305,21 @@ if 1:
 
 def addnum2(path:tuple[str,...],index:int,value:int,expr:str):
     addnum1(value)
-    db.createCategoryNumber(path,index,value,expr,())
+    db.createCategoryNumber(path,index,value,expr)
 
 # fill some categories with sample numbers
 if 1:
-    primes = nums.primeSieve(1000)
-    fibs = [0,1]
-    lucas = [2,1]
-    while len(fibs) < 220:
-        fibs.append(fibs[-1]+fibs[-2])
-        lucas.append(lucas[-1]+lucas[-2])
+    primes = primeSieve(1000)
     for i in range(220):
-        addnum2(('fibonacci',),i,fibs[i],f'fibonacci({i})')
-        addnum2(('lucas',),i,lucas[i],f'lucas({i})')
+        addnum2(('fibonacci',),i,fibonacci(i),f'fibonacci({i})')
+        addnum2(('lucas',),i,lucas(i),f'lucas({i})')
     for i in range(110):
         addnum2(('mersenne',),i+1,2**primes[i]-1,f'2^{primes[i]}-1')
-        addnum2(('repunit','base2'),i,nums.repunit(i,2),f'2^{i}-1')
-        addnum2(('repunit','base10'),i,nums.repunit(i,10),f'(10^{i}-1)/9')
-        addnum2(('repunit','base16'),i,nums.repunit(i,16),f'(16^{i}-1)/15')
-        addnum2(('factorial','+1'),i,nums.factorial(i)+1,f'{i}!+1')
-        addnum2(('factorial','-1'),i,nums.factorial(i)-1,f'{i}!-1')
+        addnum2(('repunit','base2'),i,repunit(i,2),f'2^{i}-1')
+        addnum2(('repunit','base10'),i,repunit(i,10),f'(10^{i}-1)/9')
+        addnum2(('repunit','base16'),i,repunit(i,16),f'(16^{i}-1)/15')
+        addnum2(('factorial','+1'),i,factorial(i)+1,f'{i}!+1')
+        addnum2(('factorial','-1'),i,factorial(i)-1,f'{i}!-1')
         if i > 0:
             addnum2(('near_repdigit','base2','100..001'),i,2**i+1,f'2^{i}+1')
             addnum2(('near_repdigit','base10','100..001'),i,10**i+1,f'10^{i}+1')

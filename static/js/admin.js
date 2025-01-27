@@ -32,7 +32,6 @@ function append_nums_table_row() {
         <td><input type="text" placeholder="index" /></td>
         <td><input type="text" placeholder="expr" /></td>
         <td><input type="text" placeholder="value" /></td>
-        <td><input type="text" placeholder="factors" /></td>
         <td><button>delete</button></td>`;
     row.querySelector('button').addEventListener('click', () => row.remove());
     document.querySelector('#admin_add_nums_table').appendChild(row);
@@ -54,13 +53,8 @@ function make_add_nums_inputs() {
         inp2.type = 'hidden';
         inp2.name = 'value' + String(i);
         inp2.value = inps[2].value;
-        let inp3 = document.createElement('input');
-        inp3.type = 'hidden';
-        inp3.name = 'factors' + String(i);
-        inp3.value = inps[3].value;
         form.appendChild(inp0);
         form.appendChild(inp1);
         form.appendChild(inp2);
-        form.appendChild(inp3);
     });
 }

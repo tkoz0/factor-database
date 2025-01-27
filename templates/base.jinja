@@ -9,6 +9,14 @@
     <meta content="Website for tracking integer factorization progress." property="og:description" />
     {% endblock %}
     {% block posthead %}{% endblock %}
+    {% if debug %}
+    <style type="text/css">
+        .debug_watermark {
+            position: fixed;
+            background: red;
+        }
+    </style>
+    {% endif %}
 </head>
 <body>
 
@@ -17,6 +25,13 @@
     <span>{{post_msg}}</span>
     <button onclick="document.querySelector('#post_msg').remove()">close</button>
 </div>
+{% endif %}
+
+{% if debug %}
+<div class="debug_watermark" style="right:0;top:0;">DEBUG</div>
+<div class="debug_watermark" style="right:0;bottom:0;">DEBUG</div>
+<div class="debug_watermark" style="left:0;top:0;">DEBUG</div>
+<div class="debug_watermark" style="left:0;bottom:0;">DEBUG</div>
 {% endif %}
 
 <div id="header">

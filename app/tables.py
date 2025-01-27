@@ -215,7 +215,7 @@ def deleteCategory(p:tuple[str,...],confirm:str) -> tuple[str,int,bool]:
         return (f'Failed to delete: {e}',400,False)
 
 def insertNumbers(p:tuple[str,...],indexes:list[str],exprs:list[str],
-                  values:list[str],factors:list[str]) -> tuple[str,int,bool]:
+                  values:list[str]) -> tuple[str,int,bool]:
     '''
     process form for adding numbers to table
     '''
@@ -224,8 +224,7 @@ def insertNumbers(p:tuple[str,...],indexes:list[str],exprs:list[str],
         arg_i = [int(i) for i in indexes]
         arg_v = [int(v) for v in values]
         for i in range(len(exprs)):
-            fs = list(map(int,factors[i].split()))
-            app.database.createCategoryNumber(p,arg_i[i],arg_v[i],exprs[i],fs)
+            app.database.createCategoryNumber(p,arg_i[i],arg_v[i],exprs[i])
         return (f'Successfully created {len(exprs)} number(s).',200,True)
     except Exception as e:
         return (f'Failed to create: {e}',400,False)
@@ -294,15 +293,13 @@ async def post_tables_page(path:str):
         indexes = []
         exprs = []
         values = []
-        factors = []
         while f'index{i}' in data and f'expr{i}' in data \
-                and f'value{i}' in data and f'factors{i}' in data:
+                and f'value{i}' in data:
             indexes.append(data[f'index{i}'])
             exprs.append(data[f'expr{i}'])
             values.append(data[f'value{i}'])
-            factors.append(data[f'factors{i}'])
             i += 1
-        msg,code,ok = insertNumbers(path_tup,indexes,exprs,values,factors)
+        msg,code,ok = insertNumbers(path_tup,indexes,exprs,values)
 
     elif 'delete_index_list' in data and 'delete_confirm_2' in data:
         msg,code,ok = removeNumbers(path_tup,data['delete_index_list'],
