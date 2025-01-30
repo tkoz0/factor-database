@@ -1,5 +1,6 @@
-import quart
 import json
+
+import quart
 
 import app.util
 

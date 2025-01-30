@@ -24,7 +24,7 @@ ecm_b1_curves = ((2000,2000),(10000,1000),(50000,500))
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-c','--calc',help='term expression for calculation (use {} for index)',type=str,required=True)
-parser.add_argument('-e','--expr',help='term expression for database (use {} for index)',type=str,required=True)
+parser.add_argument('-e','--expr',help='term expression for database (use {} for index)',type=str,default='')
 parser.add_argument('-s','--start',help='beginning index',type=int,required=True)
 parser.add_argument('-f','--finish',help='ending index (1 past end)',type=int,required=True)
 parser.add_argument('-p','--path',help='table path',type=str)

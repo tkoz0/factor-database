@@ -1,9 +1,12 @@
 import json
-import sys
 import math
+import os
+import sys
+
+scriptdir = os.path.dirname(__file__)
 
 # config file has to be first created
-with open('config.json','r') as f:
+with open(f'{scriptdir}/../config.json','r') as f:
     config = json.load(f)
 assert isinstance(config,dict)
 

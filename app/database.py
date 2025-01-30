@@ -173,7 +173,7 @@ def _dblog_str(s:str,save_to_db:bool,level:int):
     if not save_to_db:
         return
     with _dbcon() as con:
-        con.execute("insert into logs(text,level) values (%s,%s);",(s,level))
+        con.execute("insert into logs (text,level) values (%s,%s);",(s,level))
         con.commit()
 
 def _dblog_debug(s:str):
@@ -592,7 +592,7 @@ def _addfac(f:int) -> FactorRow:
 
         # does not exist, insert new factor
         f_p = _dbprp(f)
-        cur = con.execute("insert into factors(value,primality) "
+        cur = con.execute("insert into factors (value,primality) "
                           "values (%s,%s) returning *;",(f_b,f_p))
         row = cur.fetchone()
         assert row is not None, 'internal error'
@@ -653,7 +653,7 @@ def addNumber(n:int,fs:list[int]|tuple[int,...]=[]) -> tuple[bool,NumberRow]:
             cof_id = _addfac(cof).id
 
         # add number
-        cur = con.execute("insert into numbers"
+        cur = con.execute("insert into numbers "
                           "(value,spf2,spf4,spf8,cof_id) "
                           "values (%s,%s,%s,%s,%s) returning *;",
                           (_int_to_dbnum(n),spf2b,spf4b,spf8b,cof_id))
@@ -785,7 +785,8 @@ def addFactor(n:int, f:int):
             if f < nf1: # will replace factorization
                 better = True
                 # store old factorization in factors_old table
-                con.execute("insert into factors_old values (%s,%s,%s);",
+                con.execute("insert into factors_old (fac_id,f1_id,f2_id) "
+                            "values (%s,%s,%s);",
                             (n_row.id,n_row.f1_id,n_row.f2_id))
                 _dblog_info(f'replacing factorization of id {n_row.id} '
                             f'to {n_row.f1_id} and {n_row.f2_id}')
@@ -1400,10 +1401,31 @@ def createCategoryNumber(path:tuple[str,...], index:int,
             nid = num.id
             valstr = None
 
-        con.execute("insert into sequences values (%s,%s,%s,%s,%s);",
+        con.execute("insert into sequences (cat_id,index,num_id,value,expr) "
+                    "values (%s,%s,%s,%s,%s);",
                     (cat.id,index,nid,valstr,expr))
         con.commit()
         _dblog_info(f'created /{'/'.join(path)} index {index}')
+
+def updateCategoryNumber(path:tuple[str,...], index:int, expr:str|None):
+    '''
+    updates the expression stored for a number
+    '''
+    with _dbcon() as con:
+        cat = _getcatp(path,con)
+        if cat is None:
+            raise FDBException('category does not exist')
+        cat = cat[-1]
+        if not cat.is_table:
+            raise FDBException('category numbers are only in tables')
+
+        cur = con.execute("update sequences set expr = %s "
+                          "where cat_id = %s and index = %s returning *;",
+                          (expr,cat.id,index))
+        updated = cur.fetchone() is not None
+        con.commit()
+        if updated:
+            _dblog_info(f'updated /{'/'.join(path)} index {index}')
 
 def deleteCategoryNumber(path:tuple[str,...], index:int):
     '''
@@ -1449,6 +1471,9 @@ def getCategoryNumberInfo(path:tuple[str,...], start:int, count:int) \
                 assert num_id is None or isinstance(num_id,int)
                 assert value is None or isinstance(value,str)
                 assert expr is None or isinstance(expr,str)
+
+            if expr is None:
+                expr = ''
 
             if num_id is None: # number not stored in database
                 ret.append((index,expr,value,[]))

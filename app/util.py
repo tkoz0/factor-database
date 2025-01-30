@@ -1,5 +1,6 @@
-import quart
 import math
+
+import quart
 
 import app.database
 from app.database import Primality

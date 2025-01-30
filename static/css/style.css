@@ -144,10 +144,6 @@ body {
     border-bottom: 1px solid black;
 }
 
-#factor_table td:first-child {
-    padding-right: 10px;
-}
-
 #table_page_nav a {
     margin-left: 5px;
 }
@@ -206,6 +202,15 @@ body {
 
 .num_incomp:hover {
     background: darkgray;
+}
+
+.index {
+    white-space: nowrap;
+}
+
+.expr {
+    padding-right: 10px;
+    padding-left: 5px;
 }
 
 /* factor info page */
