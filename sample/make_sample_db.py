@@ -1,10 +1,12 @@
+#!/bin/python3
+
 import json
 import os
 import sys
 import time
 t_start = time.time()
 
-scriptdir = os.path.dirname(sys.argv[0])
+scriptdir = os.path.dirname(__file__)
 sys.path.append(f'{scriptdir}/..')
 
 # recreate blank database from the schema

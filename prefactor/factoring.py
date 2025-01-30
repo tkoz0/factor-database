@@ -1,5 +1,3 @@
-#!/bin/python3
-
 '''
 prefactoring numbers before adding them to the database
 
@@ -34,15 +32,9 @@ import gmpy2
 import cypari2
 pari = cypari2.Pari()
 
-sys.path.append(os.path.dirname(os.path.dirname(sys.argv[0])))
-
 # ==========
 # parameters
 # ==========
-
-config_lim_tdiv = 10**5
-config_lim_prho = 10**6
-config_ecm_b1_curves = ((2000,2000),(10000,1000),(50000,500))
 
 debug = False
 
@@ -242,7 +234,12 @@ def ecm_runner(n:int,
 def prp(n:int) -> bool:
     return gmpy2.is_prime(n,50) # type:ignore
 
-def prefactor(n:int,ecm_threads:int=0,progress_stream=None) -> list[tuple[int,bool,str]]:
+def prefactor_runner(n:int,
+                     lim_tdiv:int=0,
+                     lim_prho:int=0,
+                     ecm_b1_curves:tuple[tuple[int,int],...]=(),
+                     ecm_threads:int=0,
+                     progress_stream=None) -> list[tuple[int,bool,str]]:
     '''
     apply prefactoring steps to number and get a list of (factor,primality,algo)
     primality is a probable test from gmpy2.is_prime
@@ -253,69 +250,73 @@ def prefactor(n:int,ecm_threads:int=0,progress_stream=None) -> list[tuple[int,bo
     factors: list[tuple[int,bool,str]] = []
 
     # trial division finds all factors below chosen limit
-    if progress_stream:
-        progress_stream.write(f'running tdiv on {cofactor}\n')
-    t = time()
-    proc_tdiv = subprocess.Popen(
-        [path_tdiv,str(config_lim_tdiv),str(cofactor)],
-        stdin=subprocess.PIPE,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        universal_newlines=True
-    )
-    assert proc_tdiv.stdout
-    for line in proc_tdiv.stdout:
-        f = int(line)
-        assert prp(f)
-        factors.append((f,True,'tdiv'))
-        assert cofactor % f == 0
-        cofactor //= f
-    if progress_stream:
-        if len(factors):
-            progress_stream.write(f'found factors {','.join(str(f) for f,_,_ in factors)} with trial division ({time()-t:.3f} sec)\n')
-        else:
-            progress_stream.write(f'no factor found ({time()-t:.3f} sec)\n')
+    if lim_tdiv > 0:
 
-    # attempt pollard rho until it fails to find a factor in iteration limit
-    cofactors_attempt: list[int] = []
-    if cofactor > 1:
-        cofactors_attempt.append(cofactor)
-    cofactors_done: list[int] = []
-    while len(cofactors_attempt) > 0:
-        # get a cofactor, nothing to do if it is prime
-        cofactor = cofactors_attempt.pop()
-        if prp(cofactor):
-            factors.append((cofactor,True,'prho'))
-            continue
-
-        # iteration with some randomly chosen parameters
-        x0 = 2 + random.getrandbits(8)
-        b = 1 + random.getrandbits(8)
         if progress_stream:
-            progress_stream.write(f'running prho on {cofactor}\n')
+            progress_stream.write(f'running tdiv on {cofactor}\n')
         t = time()
-        proc_prho = subprocess.Popen(
-            [path_prho,str(config_lim_prho),str(x0),str(b),str(cofactor)],
+        proc_tdiv = subprocess.Popen(
+            [path_tdiv,str(lim_tdiv),str(cofactor)],
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             universal_newlines=True
         )
-        assert proc_prho.stdout
-        line = proc_prho.stdout.readline()
-        if not line: # did not find factor
-            if progress_stream:
-                progress_stream.write(f'no factor found ({time()-t:.3f} sec)\n')
-            cofactors_done.append(cofactor)
-            continue
-
-        f = int(line)
-        assert 1 < f < cofactor
-        assert cofactor % f == 0
+        assert proc_tdiv.stdout
+        for line in proc_tdiv.stdout:
+            f = int(line)
+            assert prp(f)
+            factors.append((f,True,'tdiv'))
+            assert cofactor % f == 0
+            cofactor //= f
         if progress_stream:
-            progress_stream.write(f'found factor {f} with prho ({time()-t:.3f} sec)\n')
-        cofactors_attempt.append(f)
-        cofactors_attempt.append(cofactor//f)
+            if len(factors):
+                progress_stream.write(f'found factors {','.join(str(f) for f,_,_ in factors)} with trial division ({time()-t:.3f} sec)\n')
+            else:
+                progress_stream.write(f'no factor found ({time()-t:.3f} sec)\n')
+
+    # attempt pollard rho until it fails to find a factor in iteration limit
+    if lim_prho > 0:
+
+        cofactors_attempt: list[int] = []
+        if cofactor > 1:
+            cofactors_attempt.append(cofactor)
+        cofactors_done: list[int] = []
+        while len(cofactors_attempt) > 0:
+            # get a cofactor, nothing to do if it is prime
+            cofactor = cofactors_attempt.pop()
+            if prp(cofactor):
+                factors.append((cofactor,True,'prho'))
+                continue
+
+            # iteration with some randomly chosen parameters
+            x0 = 2 + random.getrandbits(8)
+            b = 1 + random.getrandbits(8)
+            if progress_stream:
+                progress_stream.write(f'running prho on {cofactor}\n')
+            t = time()
+            proc_prho = subprocess.Popen(
+                [path_prho,str(lim_prho),str(x0),str(b),str(cofactor)],
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                universal_newlines=True
+            )
+            assert proc_prho.stdout
+            line = proc_prho.stdout.readline()
+            if not line: # did not find factor
+                if progress_stream:
+                    progress_stream.write(f'no factor found ({time()-t:.3f} sec)\n')
+                cofactors_done.append(cofactor)
+                continue
+
+            f = int(line)
+            assert 1 < f < cofactor
+            assert cofactor % f == 0
+            if progress_stream:
+                progress_stream.write(f'found factor {f} with prho ({time()-t:.3f} sec)\n')
+            cofactors_attempt.append(f)
+            cofactors_attempt.append(cofactor//f)
 
     # attempt ecm until it fails to find factor with all parameter choices
     cofactors_attempt = cofactors_done
@@ -329,7 +330,7 @@ def prefactor(n:int,ecm_threads:int=0,progress_stream=None) -> list[tuple[int,bo
 
         # ecm using selected parameter choices
         f1,f2,num_curves = 0,0,0
-        for b1,curves in config_ecm_b1_curves:
+        for b1,curves in ecm_b1_curves:
             t = time()
             if progress_stream:
                 progress_stream.write(f'running ecm with b1={b1} for {curves} curves on {cofactor}\n')
@@ -363,8 +364,13 @@ def prefactor(n:int,ecm_threads:int=0,progress_stream=None) -> list[tuple[int,bo
     return sorted(factors)
 
 # ===========
-# main runner
+# test runner
 # ===========
+
+# factoring parameters
+lim_tdiv = 10**5
+lim_prho = 10**6
+ecm_b1_curves = ((2000,2000),(10000,1000),(50000,500))
 
 if __name__ == '__main__':
 
@@ -375,7 +381,7 @@ if __name__ == '__main__':
         if n < 2:
             print(f'small number {n}',file=sys.stderr)
         else:
-            ret = prefactor(n,0,sys.stderr)
+            ret = prefactor_runner(n,lim_tdiv,lim_prho,ecm_b1_curves,0,sys.stderr)
             all_prime = all(p for _,p,_ in ret)
             for f,p,a in ret:
                 assert p == pari.isprime(f)

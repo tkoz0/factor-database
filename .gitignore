@@ -7,6 +7,6 @@ __pycache__
 /logs
 /config.json
 /fdb.service
-/fdb_prefactor/tdiv
-/fdb_prefactor/prho
-/fdb_prefactor/ecm
+/prefactor/tdiv
+/prefactor/prho
+/prefactor/ecm

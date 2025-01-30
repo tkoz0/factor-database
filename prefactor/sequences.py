@@ -2,7 +2,7 @@
 code for number sequences
 '''
 
-from fdb_numbers.primes import primeSieve
+from primes import primeSieve
 
 def fibonacci(n:int) -> int:
     # f(0)=0,f(1)=1,f(n)=f(n-1)+f(n-2)

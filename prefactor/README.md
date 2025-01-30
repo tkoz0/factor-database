@@ -1,5 +1,13 @@
 # prefactoring
 
+Tools for selecting numbers to add to the database and finding small factors.
+- `prefactor.py` main function for finding small factors
+- `dbfactor.py` factor numbers and produce JSON lines output
+- `dbinsert.py` insert to database using JSON lines data from `dbfactor.py`
+- `bases.py` utility functions for number bases
+- `primes.py` utility functions for primes
+- `sequences.py` utility functions for number sequences
+
 Before adding numbers to database, find small factors to remove. The goal is to
 almost guarantee that all factors below `2**64` are found. The following steps
 were chosen.
