@@ -39,7 +39,7 @@ _cache_limit: int = 2
 
 def _cache_expand():
     global _cache_primes,_cache_primes_set,_cache_composites,_cache_limit
-    _cache_limit = (_cache_limit * 5 // 4) + 1
+    _cache_limit = (_cache_limit * 3 // 2) + 1
     _cache_primes = primeSieve(_cache_limit)
     _cache_primes_set = set(_cache_primes)
     _cache_composites = [n for n in range(2,_cache_limit)
@@ -73,3 +73,14 @@ if __name__ == '__main__':
     assert all(isPrp(n) == (n in primes_set) for n in range(65536))
     assert [nthPrime(n) for n in range(1,11)] == [2,3,5,7,11,13,17,19,23,29]
     assert [nthComposite(n) for n in range(1,11)] == [4,6,8,9,10,12,14,15,16,18]
+    assert nthPrime(1000) == 7919
+    assert nthPrime(1001) == 7927
+    assert nthPrime(10000) == 104729
+    assert nthPrime(10001) == 104743
+    assert nthComposite(1000) == 1197
+    assert nthComposite(1001) == 1198
+    assert nthComposite(1002) == 1199
+    assert nthComposite(1003) == 1200
+    assert nthComposite(1004) == 1202
+    assert nthComposite(10000) == 11374
+    assert nthComposite(10001) == 11375
