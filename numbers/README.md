@@ -1,8 +1,25 @@
 # selected numbers for production database
 
-# format notes
+Preferred sequences should have the following properties.
+This is to limit database size by storing only significant nontrivial results.
 
-- for repeated digits A, express it as AA..AA
+- grows at least exponentially
+  - something like the fibonacci sequence or repunits are acceptable
+  - polynomials grow very slowly so factoring many is trivial
+  - storing a large number of smaller easy to factor terms is not the purpose
+  - subexponential growth is ok if the number lengths increase quickly
+- not trivially factorable
+  - some terms may be easy to factor but many should not be, for example
+    - repunits of a highly composite power have many smaller factors
+    - repunits of other powers usually have larger, hard to find factors
+  - fibonacci and repunits have many terms that are hard to factor
+  - permutation/combination formulas are trivial to factor
+  - sequences of primes are considered trivially factorable
+    - primality proving is fast up to a much larger point than factoring
+- selected from mathematical significance
+  - things with compact representations like fibonacci and repunit
+  - related to formulas for important things like combinatorics
+  - important random-like sequences like forming integers from pi digits
 
 # some ideas
 
@@ -35,9 +52,24 @@
 - generalized wagstaff (b^n+1)/(b+1) (possibly with negative b)
 - proth numbers (k\*2^n+1)
 - solinas numbers (f(2^k), f is low degree poly with small integer coeffs)
+- number of derangements
+- number of integer partitions
+- bell numbers (set partitions)
+- catalan numbers (are these trivially factorable)
+- motzkin numbers (ways of drawing lines between points on circle)
+- telephone/involution numbers (ways to make graph matchings)
+- schroder numbers (count 2d lattice paths with diagonals allowed)
+- schroder-hipparchus number (counting plane trees)
+- tribonacci numbers
+- determinants of significant matrices
+- stirling numbers (are these trivial to factor)
+- lah numbers (related to stirling)
+- fuss-catalan number
+- pseudoprimes (if any types grow fast enough)
 
 # ideas from stdkmd.net
 
+- repeated digit expressed as AA..AA
 - repunit (including bases other than 10)
 - near repdigit
   - AA..AAB
