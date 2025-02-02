@@ -86,6 +86,7 @@ def ecm_runner(n:int,
 
     # track info for each subprocess
     procs: list[subprocess.Popen] = []
+    last_line: list[str] = []
     last_stage: list[int] = []
     last_b1: list[int] = []
     last_b2: list[int] = []
@@ -101,7 +102,8 @@ def ecm_runner(n:int,
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            universal_newlines=True
+            text=True,
+            bufsize=1 # line buffered
         ))
 
         # write number to stdin
@@ -113,6 +115,7 @@ def ecm_runner(n:int,
         # add list element corresponding to process
         if output is not None:
             output.append([])
+        last_line.append('')
         last_stage.append(0)
         last_b1.append(0)
         last_b2.append(0)
@@ -141,6 +144,13 @@ def ecm_runner(n:int,
 
             any_change = True
             line: str = procs[i].stdout.readline() # type:ignore
+            if not line: # eof
+                continue
+            last_line[i] += line
+            if not last_line[i].endswith('\n'): # need more from buffer
+                continue
+            line = last_line[i]
+            last_line[i] = ''
             if output:
                 output[i].append(line)
             if debug:
@@ -157,7 +167,7 @@ def ecm_runner(n:int,
 
             elif line.startswith('Using'): # parameters
                 match = using_re.match(line)
-                assert match is not None, 'unexpected line'
+                assert match is not None, f'unexpected line: {repr(line)}'
                 s_b1,s_b2,s_poly,s_sigma = match.groups()
                 last_b1[i] = int(s_b1)
                 last_b2[i] = int(s_b2)
