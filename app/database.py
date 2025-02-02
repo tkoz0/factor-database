@@ -635,13 +635,16 @@ def addNumber(n:int,fs:list[int]|tuple[int,...]=[]) -> tuple[bool,NumberRow]:
         cof = n
         spfs: list[int] = []
         for f in sorted(fs):
+
             if f.bit_length() <= 64:
                 if not primeTest(f):
                     raise FDBException(f'provided non prime factor {f}')
                 while cof % f == 0:
                     spfs.append(f)
                     cof //= f
-            else:
+
+            else: # factors bigger than 64 bit
+                #TODO
                 raise FDBException(f'provided factor too large {f}')
 
         # prepare factor values to store in database
@@ -1091,6 +1094,14 @@ class CategoryRow:
             f'created={repr(self.created)},' \
             f'modified={repr(self.modified)})>'
 
+def _str_to_path(s:str) -> tuple[str,...]:
+    # convert path string to tuple of path components
+    return tuple(p for p in s.strip(' \n\t/').split('/') if p)
+
+def _path_to_str(p:tuple[str,...]):
+    # convert path components to string
+    return f'/{'/'.join(p)}'
+
 def _getcati(i:int,con:psycopg.Connection) -> None|CategoryRow:
     # get category by id (from connection)
     cur = con.execute("select * from categories where id = %s;",(i,))
@@ -1142,11 +1153,14 @@ def _getcatpi(i:int,con:psycopg.Connection) -> None|list[CategoryRow]:
     # switch order to start at root
     return ret[::-1]
 
-def getCategory(path:int|tuple[str,...]) -> None|CategoryRow:
+def getCategory(path:int|tuple[str,...]|str) -> None|CategoryRow:
     '''
     find category info by its path/id, empty tuple or 0 is root,
     none if it does not exist
     '''
+    if isinstance(path,str):
+        path = _str_to_path(path)
+
     with _dbcon() as con:
         if isinstance(path,tuple):
             data = _getcatp(path,con)
@@ -1154,11 +1168,14 @@ def getCategory(path:int|tuple[str,...]) -> None|CategoryRow:
         else:
             return _getcati(path,con)
 
-def getCategoryFullPath(path:int|tuple[str,...]) -> None|list[CategoryRow]:
+def getCategoryFullPath(path:int|tuple[str,...]|str) -> None|list[CategoryRow]:
     '''
     find info of a category and all its parents, empty path is root
     none if it does not exist
     '''
+    if isinstance(path,str):
+        path = _str_to_path(path)
+
     with _dbcon() as con:
         if isinstance(path,tuple):
             return _getcatp(path,con)
@@ -1173,11 +1190,14 @@ def _getcatpar(i:int,con:psycopg.Connection) -> None|CategoryRow:
         return None
     return _getcati(row[0],con)
 
-def getCategoryParent(i:int|tuple[str,...]) -> None|CategoryRow:
+def getCategoryParent(i:int|tuple[str,...]|str) -> None|CategoryRow:
     '''
     find parent of category, parent of root is none,
     non if it does not exist
     '''
+    if isinstance(i,str):
+        i = _str_to_path(i)
+
     with _dbcon() as con:
         if isinstance(i,tuple):
             if i == ():
@@ -1193,12 +1213,15 @@ def _getcatchi(i:int,con:psycopg.Connection) -> list[CategoryRow]:
                       "and id <> 0 order by order_num nulls last;",(i,))
     return [CategoryRow(row) for row in cur]
 
-def listCategory(path:int|tuple[str,...]) -> None|list[CategoryRow]:
+def listCategory(path:int|tuple[str,...]|str) -> None|list[CategoryRow]:
     '''
     list category children (by id)
     empty list if it does not exist
     empty list is still possible for categories that do exist
     '''
+    if isinstance(path,str):
+        path = _str_to_path(path)
+
     with _dbcon() as con:
         if isinstance(path,tuple):
             data = _getcatp(path,con)
@@ -1208,13 +1231,15 @@ def listCategory(path:int|tuple[str,...]) -> None|list[CategoryRow]:
         else:
             return _getcatchi(path,con)
 
-def createCategory(path:tuple[str,...], is_table:bool,
+def createCategory(path:tuple[str,...]|str, is_table:bool,
                    title:str, info:str) -> CategoryRow:
     '''
     creates a subcategory (cannot be root), its parent must exist
     exception if an error occurs
     returns row of new category
     '''
+    if isinstance(path,str):
+        path = _str_to_path(path)
 
     if path == ():
         raise FDBException('root category must be created in database setup')
@@ -1238,7 +1263,7 @@ def createCategory(path:tuple[str,...], is_table:bool,
 
         new_row = CategoryRow(cur.fetchone())
         _dblog_info(f'created {'table' if is_table else 'category'} '
-                    f'id {new_row.id} with path /{'/'.join(path)}')
+                    f'id {new_row.id} with path {_path_to_str(path)}')
         con.commit()
         return new_row
 
@@ -1250,7 +1275,10 @@ for column in ('title','info','expr'):
     query = query.format(psycopg.sql.Identifier(column))
     _setcat_q[column] = query
 
-def _setcat(path:int|tuple[str,...],value,column:str):
+def _setcat(path:int|tuple[str,...]|str,value,column:str):
+    if isinstance(path,str):
+        path = _str_to_path(path)
+
     with _dbcon() as con:
         if isinstance(path,tuple):
             pathdata = _getcatp(path,con)
@@ -1266,32 +1294,37 @@ def _setcat(path:int|tuple[str,...],value,column:str):
         con.commit()
 
         if isinstance(path,tuple):
-            _dblog_info(f'updated {column} for /{'/'.join(path)}')
+            _dblog_info(f'updated {column} for {_path_to_str(path)}')
         else:
             _dblog_info(f'updated {column} for category id {path}')
 
-def setCategoryInfo(path:int|tuple[str,...], info:str):
+def setCategoryInfo(path:int|tuple[str,...]|str, info:str):
     '''
     update the category info string
     '''
     _setcat(path,info,'info')
 
-def setCategoryTitle(path:int|tuple[str,...], title:str):
+def setCategoryTitle(path:int|tuple[str,...]|str, title:str):
     '''
     update the category title string
     '''
     _setcat(path,title,'title')
 
-def setCategoryExpr(path:int|tuple[str,...], expr:str|None):
+def setCategoryExpr(path:int|tuple[str,...]|str, expr:str|None):
     '''
     update the category expression for generating terms
     '''
     _setcat(path,expr,'expr')
 
-def renameCategory(old:tuple[str,...], new:tuple[str,...]):
+def renameCategory(old:tuple[str,...]|str, new:tuple[str,...]|str):
     '''
     moves/renames a category
     '''
+    if isinstance(old,str):
+        old = _str_to_path(old)
+    if isinstance(new,str):
+        new = _str_to_path(new)
+
     if old == () or new == ():
         raise FDBException('cannot rename root category')
 
@@ -1310,13 +1343,16 @@ def renameCategory(old:tuple[str,...], new:tuple[str,...]):
                     "name = %s, modified = default where id = %s;",
                     (newdata[-1].id,new[-1],olddata[-1].id))
         con.commit()
-        _dblog_info(f'renamed /{'/'.join(old)} to /{'/'.join(new)}')
+        _dblog_info(f'renamed {_path_to_str(old)} to {_path_to_str(new)}')
 
-def deleteCategory(path:tuple[str,...]):
+def deleteCategory(path:tuple[str,...]|str):
     '''
     delete a category from the database
     exception if it does not exist or has children
     '''
+    if isinstance(path,str):
+        path = _str_to_path(path)
+
     if path == ():
         raise FDBException('cannot remove root category')
 
@@ -1327,13 +1363,16 @@ def deleteCategory(path:tuple[str,...]):
 
         con.execute('delete from categories where id = %s;',(data[-1].id,))
         con.commit()
-        _dblog_info(f'deleted /{'/'.join(path)}')
+        _dblog_info(f'deleted {_path_to_str(path)}')
 
-def reorderSubcategories(path:tuple[str,...], order:list[str]):
+def reorderSubcategories(path:tuple[str,...]|str, order:list[str]):
     '''
     changes listing order for subcategories
     exception if invalid order data or error occurs
     '''
+    if isinstance(path,str):
+        path = _str_to_path(path)
+
     with _dbcon() as con:
         data = _getcatp(path,con)
         if data is None:
@@ -1350,7 +1389,7 @@ def reorderSubcategories(path:tuple[str,...], order:list[str]):
         con.cursor().executemany("update categories set order_num = %s "
                                  "where id = %s;",queryparams)
         con.commit()
-        _dblog_info(f'reordered listing for /{'/'.join(path)}')
+        _dblog_info(f'reordered listing for {_path_to_str(path)}')
 
 def _catwalk(row:CategoryRow,path:tuple[str,...],
              ret:list[tuple[tuple[str,...],CategoryRow]],
@@ -1361,11 +1400,14 @@ def _catwalk(row:CategoryRow,path:tuple[str,...],
     for child in children:
         _catwalk(child,path+(child.name,),ret,con)
 
-def walkCategories(path:tuple[str,...] = ()) \
+def walkCategories(path:tuple[str,...]|str = ()) \
         -> list[tuple[tuple[str,...],CategoryRow]]:
     '''
     iterate a categories subtree, default starting at root
     '''
+    if isinstance(path,str):
+        path = _str_to_path(path)
+
     with _dbcon() as con:
         ret: list[tuple[tuple[str,...],CategoryRow]] = []
         data = _getcatp(path,con)
@@ -1374,12 +1416,15 @@ def walkCategories(path:tuple[str,...] = ()) \
         _catwalk(data[-1],path,ret,con)
         return ret
 
-def createCategoryNumber(path:tuple[str,...], index:int,
+def createCategoryNumber(path:tuple[str,...]|str, index:int,
                          value:int|str, expr:str):
     '''
     add a number to a category (must exist in database for integers >= 2)
     fs is the factor list passed to addNumber()
     '''
+    if isinstance(path,str):
+        path = _str_to_path(path)
+
     with _dbcon() as con:
         cat = _getcatp(path,con)
         if cat is None:
@@ -1405,12 +1450,15 @@ def createCategoryNumber(path:tuple[str,...], index:int,
                     "values (%s,%s,%s,%s,%s);",
                     (cat.id,index,nid,valstr,expr))
         con.commit()
-        _dblog_info(f'created /{'/'.join(path)} index {index}')
+        _dblog_info(f'created {_path_to_str(path)} index {index}')
 
-def updateCategoryNumber(path:tuple[str,...], index:int, expr:str|None):
+def updateCategoryNumber(path:tuple[str,...]|str, index:int, expr:str|None):
     '''
     updates the expression stored for a number
     '''
+    if isinstance(path,str):
+        path = _str_to_path(path)
+
     with _dbcon() as con:
         cat = _getcatp(path,con)
         if cat is None:
@@ -1425,13 +1473,16 @@ def updateCategoryNumber(path:tuple[str,...], index:int, expr:str|None):
         updated = cur.fetchone() is not None
         con.commit()
         if updated:
-            _dblog_info(f'updated /{'/'.join(path)} index {index}')
+            _dblog_info(f'updated {_path_to_str(path)} index {index}')
 
-def deleteCategoryNumber(path:tuple[str,...], index:int):
+def deleteCategoryNumber(path:tuple[str,...]|str, index:int):
     '''
     remove a number from a category
     also attempts to remove it from the database
     '''
+    if isinstance(path,str):
+        path = _str_to_path(path)
+
     with _dbcon() as con:
         cat = _getcatp(path,con)
         if cat is None:
@@ -1443,15 +1494,18 @@ def deleteCategoryNumber(path:tuple[str,...], index:int):
         row = cur.fetchone()
         con.commit()
         if row is not None:
-            _dblog_info(f'deleted /{'/'.join(path)} index {index}')
+            _dblog_info(f'deleted {_path_to_str(path)} index {index}')
             deleteNumberByID(row[0])
 
-def getCategoryNumberInfo(path:tuple[str,...], start:int, count:int) \
+def getCategoryNumberInfo(path:tuple[str,...]|str, start:int, count:int) \
         -> list[tuple[int,str,str|NumberRow,list[tuple[int,int,None|int]]]]:
     '''
     gets all number table information for a category
     each is (index,expr,int|number_row,list[factor,primality,id])
     '''
+    if isinstance(path,str):
+        path = _str_to_path(path)
+
     with _dbcon() as con:
         cat = _getcatp(path,con)
         if cat is None:
