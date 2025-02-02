@@ -54,6 +54,9 @@ This is to limit database size by storing only significant nontrivial results.
 - solinas numbers (f(2^k), f is low degree poly with small integer coeffs)
 - number of derangements
 - number of integer partitions
+- odd integer partitions (each partition is odd)
+- even integer partitions (might be interesting but can all be divided by 2)
+- distinct integer partitions (each partition size is unique)
 - bell numbers (set partitions)
 - catalan numbers (are these trivially factorable)
 - motzkin numbers (ways of drawing lines between points on circle)
@@ -66,6 +69,7 @@ This is to limit database size by storing only significant nontrivial results.
 - lah numbers (related to stirling)
 - fuss-catalan number
 - pseudoprimes (if any types grow fast enough)
+- lychrel number sequences
 
 # ideas from stdkmd.net
 
