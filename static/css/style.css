@@ -206,6 +206,7 @@ body {
 
 .index {
     white-space: nowrap;
+    line-height: 2em;
 }
 
 .expr {
