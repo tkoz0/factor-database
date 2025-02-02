@@ -54,6 +54,7 @@ For development
 - functions for cleaning up other database data
 - setup more proper testing (quart: app.test_request_context)
 - setup a python virtual environment as part of the repo
+- setup database triggers if they make sense anywhere
 
 # feature goals
 

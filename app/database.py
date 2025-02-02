@@ -606,6 +606,25 @@ def _addfac(f:int) -> FactorRow:
                         f'({ret.value.bit_length()} bits)')
         return ret
 
+def _addfacs(i:int,fs:list[int]|tuple[int,...]):
+    # try provided factors to make progress on cofactor of number id i
+    with _dbcon() as con:
+        for f in sorted(fs):
+
+            # get the current cofactor
+            row = _getnumi(i,con)
+            assert row is not None, 'internal error'
+            if row.cof_id is None:
+                break
+            cof = _getfaci(row.cof_id,con)
+            assert cof is not None, 'internal error'
+
+            # try to factor it
+            try:
+                addFactor(cof.value,f)
+            except:
+                pass
+
 def addNumber(n:int,fs:list[int]|tuple[int,...]=[]) -> tuple[bool,NumberRow]:
     '''
     adds a number to the database, exception if n <= 0 or above size limit
@@ -626,6 +645,7 @@ def addNumber(n:int,fs:list[int]|tuple[int,...]=[]) -> tuple[bool,NumberRow]:
         # check if number already exists
         row = _getnumv(n,con)
         if row is not None:
+            _addfacs(row.id,fs)
             return (False,row)
         # note: checking this before insert into numbers should avoid (most?)
         # gaps in id column but this is not necessary
@@ -634,6 +654,7 @@ def addNumber(n:int,fs:list[int]|tuple[int,...]=[]) -> tuple[bool,NumberRow]:
         # use provided factors to make factorization progress
         cof = n
         spfs: list[int] = []
+        fs_large: list[int] = []
         for f in sorted(fs):
 
             if f.bit_length() <= 64:
@@ -644,8 +665,7 @@ def addNumber(n:int,fs:list[int]|tuple[int,...]=[]) -> tuple[bool,NumberRow]:
                     cof //= f
 
             else: # factors bigger than 64 bit
-                #TODO
-                raise FDBException(f'provided factor too large {f}')
+                fs_large.append(f)
 
         # prepare factor values to store in database
         spf2b,spf4b,spf8b = _spfs_to_dblists(spfs)
@@ -666,9 +686,12 @@ def addNumber(n:int,fs:list[int]|tuple[int,...]=[]) -> tuple[bool,NumberRow]:
         if DEBUG_EXTRA:
             _dblog_debug(f'number {n} = {spfs} {cof}')
 
-        # attempt to complete
-        completeNumber(row.id)
-        return (True,row)
+    # attempt to use large provided factors
+    _addfacs(row.id,fs_large)
+
+    # attempt to complete
+    completeNumber(row.id)
+    return (True,row)
 
 def deleteNumberByID(i:int) -> bool:
     '''

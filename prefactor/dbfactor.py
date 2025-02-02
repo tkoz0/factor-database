@@ -24,10 +24,10 @@ ecm_b1_curves = ((2000,2000),(10000,1000),(50000,500))
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-c','--calc',help='term expression for calculation (use {} for index)',type=str,required=True)
-parser.add_argument('-e','--expr',help='term expression for database (use {} for index)',type=str,default='')
+parser.add_argument('-e','--expr',help='term expression for database (use {} for index)',type=str,required=True)
 parser.add_argument('-s','--start',help='beginning index',type=int,required=True)
 parser.add_argument('-f','--finish',help='ending index (1 past end)',type=int,required=True)
-parser.add_argument('-p','--path',help='table path',type=str)
+parser.add_argument('-p','--path',help='table path',type=str,required=True)
 parser.add_argument('-d','--dry-run',help='show what script will do',action='store_true')
 parser.add_argument('-v','--verbose',help='extra output on stderr',action='store_true')
 parser.add_argument('-l','--length',help='adjust int to str length limit',type=int)
@@ -53,10 +53,7 @@ for n in range(args.start,args.finish):
     }
     assert isinstance(output['value'],int)
     if not args.dry_run:
-        if args.path:
-            output['path'] = args.path
-        else:
-            output['path'] = None
+        output['path'] = args.path
         progress_stream = None
         if output['value'] > 1:
             if args.verbose:

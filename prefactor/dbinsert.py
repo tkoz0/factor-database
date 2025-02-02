@@ -40,17 +40,17 @@ for i,line in enumerate(sys.stdin):
     factors = data['factors']
     assert factors is None or isinstance(factors,list)
     if factors is not None:
-        small_factors: list[int] = [f for f,_,_ in factors if f < 2**64]
-        assert all(gmpy2.is_prime(f) for f in small_factors) # type:ignore
-        assert all(value % f == 0 for f in small_factors)
+        factor_list: list[int] = [f for f,_,_ in factors]
+        assert all(gmpy2.is_prime(f) for f in factor_list if f < 2**64) # type:ignore
+        assert all(value % f == 0 for f in factor_list)
         if not args.dry_run:
-            added,nrow = db.addNumber(value,small_factors)
+            added,nrow = db.addNumber(value,factor_list)
             if added:
                 print(f'\033[92mindex {i} added to database, number id {nrow.id}\033[0m')
             else:
                 print(f'\033[93mindex {i} already in database, number id {nrow.id}\033[0m')
         else:
-            print(f'insert number {value} with factors {small_factors}')
+            print(f'insert number {value} with factors {factor_list}')
     if path is not None:
         path = tuple(p for p in path.split('/') if p)
         if not args.dry_run:
