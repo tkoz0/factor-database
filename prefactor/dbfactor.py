@@ -9,8 +9,7 @@ import argparse
 import json
 import sys
 
-import cypari2
-pari = cypari2.Pari()
+import gmpy2
 
 from factoring import prefactor_runner
 import bases
@@ -71,7 +70,7 @@ for n in range(args.start,args.finish):
             # check again
             cof = output['value']
             for f,p,_ in output['factors']:
-                assert pari.isprime(f) == p
+                assert gmpy2.is_prime(f) == p # type:ignore
                 assert 1 < f <= cof
                 assert cof % f == 0
                 cof //= f
