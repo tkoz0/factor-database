@@ -7,6 +7,8 @@ Tools for selecting numbers to add to the database and finding small factors.
 - `bases.py` utility functions for number bases
 - `primes.py` utility functions for primes
 - `sequences.py` utility functions for number sequences
+- `tdiv.c` small C program for the trial division step
+- `prho.c` small C program for the pollard rho step(s)
 
 Before adding numbers to database, find small factors to remove. The goal is to
 almost guarantee that all factors below `2**64` are found. The following steps
@@ -17,6 +19,24 @@ were chosen.
 3. ecm with `B1=2000` for 2000 curves (very high chance to find small factors)
 4. ecm with `B1=10000` for 1000 curves (high chance for 20 digit factors)
 5. ecm with `B1=50000` for 500 curves (moderate chance for 25 digit factors)
+
+# usage instructions
+
+1. Run `setup.sh` to download+build ECM and to compile `tdiv.c` and `prho.c`
+2. Run `dbfactor.py` to produce JSONL output with prefactoring results
+3. Pipe the JSONL data to `dbinsert.py` to add numbers to database
+
+Example for `dbfactor.py` (see `-h` for all options)
+- `dbfactor.py -c 'sequences.fibonacci({})' -e '\(F_{{}}\)' -s 0 -f 100 -p cat1/cat2/table`
+- `-c` is the expression for calculating terms (uses python `eval`)
+  - supports the `bases`, `primes`, and `sequences` modules included here
+- `-e` is the displayed expression (this example uses mathjax syntax)
+- `{}` is substituted with the number value in `-e` and `-c`
+- `-s 0` means start at index 0
+- `-f 100` means end at index 99
+- `-p cat1/cat2/table` specifies the category path
+
+There are also options for `dbinsert.py` but they are less likely to be needed.
 
 # trial division
 
