@@ -19,6 +19,8 @@ from app.config import \
 
 from app.maths import prpTest, primeTest
 
+scriptdir = os.path.dirname(__file__)
+
 # comments ===========================================================
 
 '''
@@ -149,11 +151,12 @@ def closeDatabaseConnections():
 # logging
 #===============================================================================
 
+_logdir = f'{scriptdir}/../logs'
 _logfile = None
 if LOG_TO_FILE:
-    os.makedirs('logs',exist_ok=True)
+    os.makedirs(_logdir,exist_ok=True)
     name = time.strftime('%Y-%m-%d_%H-%M-%S',_now().timetuple())
-    _logname = f'logs/{name}.log'
+    _logname = f'{_logdir}/{name}.log'
     _logfile = open(_logname,'a')
 
 def _stderr_write(s:str):
