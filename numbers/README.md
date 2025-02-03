@@ -20,6 +20,11 @@ This is to limit database size by storing only significant nontrivial results.
   - things with compact representations like fibonacci and repunit
   - related to formulas for important things like combinatorics
   - important random-like sequences like forming integers from pi digits
+- does not grow too fast
+  - fermat numbers grow so fast that only a few terms are acceptable size
+  - sequences that would have very few terms can be stored elsewhere
+  - very big numbers can utilize compact representations
+  - this database is designed for storing full representations of numbers
 
 # some ideas
 
