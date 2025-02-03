@@ -303,8 +303,8 @@ def prefactor_runner(n:int,
                 continue
 
             # iteration with some randomly chosen parameters
-            x0 = 2 + random.getrandbits(8)
-            b = 1 + random.getrandbits(8)
+            x0 = random.randint(2,9999)
+            b = random.randint(1,9999)
             if progress_stream:
                 progress_stream.write(f'running prho on {cofactor}\n')
             t = time()
