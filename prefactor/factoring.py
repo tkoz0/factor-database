@@ -29,8 +29,6 @@ from tqdm import tqdm
 import sys
 
 import gmpy2
-import cypari2
-pari = cypari2.Pari()
 
 # ==========
 # parameters
@@ -50,9 +48,6 @@ path_ecm = f'{script_dir}/ecm/ecm'
 using_re = re.compile(r'Using B1=(\d+), B2=(\d+), polynomial (.+), sigma=(.+)')
 factor_re = re.compile(r'Found (prime|composite) factor of \d+ digits: (\d+)')
 cofactor_re = re.compile(r'(Prime|Composite) cofactor (\d+) has \d+ digits')
-
-def is_ready(stream) -> bool:
-    return bool(select.select([stream,],[],[],0)[0])
 
 def ecm_runner(n:int,
                curves:int,
@@ -86,6 +81,8 @@ def ecm_runner(n:int,
 
     # track info for each subprocess
     procs: list[subprocess.Popen] = []
+    procs_poll = select.epoll(threads)
+    procs_fds = dict() # fdnum -> stream,proc_index
     last_line: list[str] = []
     last_stage: list[int] = []
     last_b1: list[int] = []
@@ -96,7 +93,7 @@ def ecm_runner(n:int,
     # initialize
     t_start = time()
     t_sleep = math.sqrt(b1/threads) * 1e-4
-    for _ in range(threads):
+    for ii in range(threads):
         procs.append(subprocess.Popen(
             cmd,
             stdin=subprocess.PIPE,
@@ -105,6 +102,12 @@ def ecm_runner(n:int,
             text=True,
             bufsize=1 # line buffered
         ))
+
+        # stdout polling
+        assert procs[-1].stdout
+        procs_poll.register(procs[-1].stdout,select.EPOLLIN)
+        fd = procs[-1].stdout.fileno()
+        procs_fds[fd] = (procs[-1].stdout,ii)
 
         # write number to stdin
         assert procs[-1].stdin
@@ -138,12 +141,11 @@ def ecm_runner(n:int,
         done = False
 
         # check ready outputs
-        for i in range(threads):
-            if not is_ready(procs[i].stdout):
-                continue
+        for fdnum,_ in procs_poll.poll(0):
+            stream,i = procs_fds[fdnum]
 
             any_change = True
-            line: str = procs[i].stdout.readline() # type:ignore
+            line: str = stream.readline()
             if not line: # eof
                 continue
             last_line[i] += line
@@ -162,6 +164,7 @@ def ecm_runner(n:int,
                 if completed_curves + threads_running > curves:
                     procs[i].terminate()
                     threads_running -= 1
+                    # TODO this also needs to be decremented on unexpected subprocess termination
                 if completed_curves >= curves:
                     break
 
@@ -394,7 +397,7 @@ if __name__ == '__main__':
             ret = prefactor_runner(n,lim_tdiv,lim_prho,ecm_b1_curves,0,sys.stderr)
             all_prime = all(p for _,p,_ in ret)
             for f,p,a in ret:
-                assert p == pari.isprime(f)
+                assert p == prp(f)
             if all_prime:
                 status = '\033[32mCOMPLETELY FACTORED\033[0m'
             elif len(ret) > 1:
