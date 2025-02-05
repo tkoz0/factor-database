@@ -2,7 +2,7 @@
 code for handling things with bases
 '''
 
-def to_base(n:int,base:int) -> list[int]:
+def to_base(base:int,n:int) -> list[int]:
     ''' convert number to base representation
     (most significant first, 0 is empty list) '''
     assert base >= 2
@@ -24,7 +24,7 @@ def to_factorial_base(n:int) -> list[int]:
         ret.append(r)
     return ret[::-1]
 
-def from_base(n:list[int],base:int) -> int:
+def from_base(base:int,n:list[int]) -> int:
     ''' convert base representation to integer (most significant first) '''
     assert base >= 2
     n = n[::-1]
@@ -50,8 +50,8 @@ if __name__ == '__main__':
     # tests
 
     def check_base(n:int,base:int,digits:list[int]):
-        assert to_base(n,base) == digits
-        assert from_base(digits,base) == n
+        assert to_base(base,n) == digits
+        assert from_base(base,digits) == n
 
     check_base(0,10,[])
     check_base(123,10,[1,2,3])
