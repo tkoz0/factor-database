@@ -18,7 +18,7 @@ import sequences
 
 # factoring parameters
 lim_tdiv = 10**5
-lim_prho = 10**6
+lim_prho = 10**5
 ecm_b1_curves = ((2000,2000),(10000,1000),(50000,500))
 
 parser = argparse.ArgumentParser()

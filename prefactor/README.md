@@ -15,7 +15,7 @@ almost guarantee that all factors below `2**64` are found. The following steps
 were chosen.
 
 1. trial division up to `10**5` (all factors up to 5 digits)
-2. pollard rho up to `10**6` iterations (high chance to find 12 digit factors)
+2. pollard rho up to `10**5` iterations (high chance to find 10 digit factors)
 3. ecm with `B1=2000` for 2000 curves (very high chance to find small factors)
 4. ecm with `B1=10000` for 1000 curves (high chance for 20 digit factors)
 5. ecm with `B1=50000` for 500 curves (moderate chance for 25 digit factors)
