@@ -29,16 +29,16 @@ if not args.no_recreate_database:
     os.system(f'psql < {scriptdir}/make_sample_db.sql')
     con_str = 'postgres://test_fdb:test_fdb@localhost/test_fdb'
     os.system(f'psql "{con_str}" < {scriptdir}/../database/schema.sql')
-    with open('config.json','w') as f:
+    with open(f'{scriptdir}/../config.json','w') as f:
         json.dump({
             'debug_extra': True,
-            'num_bit_lim': 768,
+            'num_bit_lim': 65536,
             'pwd_hash_iters': 100,
             'session_len_days': 7,
             'renew_sessions': False,
             'min_pwd_len': 3,
-            'prp_bit_lim': 256,
-            'prove_bit_lim': 128,
+            'prp_bit_lim': 8192,
+            'prove_bit_lim': 512,
             'table_per_page_default': 20,
             'table_per_page_limit': 100,
             'max_content_length': 2**20,
