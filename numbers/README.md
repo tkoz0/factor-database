@@ -69,12 +69,18 @@ This is to limit database size by storing only significant nontrivial results.
 - schroder numbers (count 2d lattice paths with diagonals allowed)
 - schroder-hipparchus number (counting plane trees)
 - tribonacci numbers
+- tetranacci numbers
+- other (P,Q) fibonacci/lucas sequences
 - determinants of significant matrices
 - stirling numbers (are these trivial to factor)
 - lah numbers (related to stirling)
 - fuss-catalan number
 - pseudoprimes (if any types grow fast enough)
 - lychrel number sequences
+- sums of fibonacci/lucas/other numbers f(0)+f(1)+f(2)+...+f(n)
+- fibonacci base ideas (zeckendorf representation)
+- extensions of sequences to negative indexes if they give interesting results
+- constants for the random fibonacci sequence
 
 # ideas from stdkmd.net
 
