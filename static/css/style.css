@@ -137,18 +137,22 @@ body {
 
 #factor_table {
     border-collapse: collapse;
+    margin-bottom: 16px;
 }
 
 #factor_table tr {
-    border-top: 1px solid black;
-    border-bottom: 1px solid black;
+    border: 1px solid black;
 }
 
-#table_page_nav a {
+#factor_table td {
+    padding: 5px;
+}
+
+.table_page_nav a {
     margin-left: 5px;
 }
 
-#table_page_nav input[type=number] {
+.table_page_nav input[type=number] {
     width: 64px;
 }
 
@@ -206,12 +210,6 @@ body {
 
 .index {
     white-space: nowrap;
-    line-height: 2em;
-}
-
-.expr {
-    padding-right: 10px;
-    padding-left: 5px;
 }
 
 /* factor info page */

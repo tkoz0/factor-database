@@ -32,34 +32,34 @@
 <h2>Table</h2>
 
 {# page nav #}
-<span id="table_page_nav">
+<div class="table_page_nav">
     Index range: {{start}} &ndash; {{start+count-1}}
 {% if start > 0 %}
-    <a href="/tables/{{path}}?start={{start-count}}&count={{count}}">prev</a>
+    <a href="/tables/{{path}}?start={{start-count}}&count={{count}}">&lt;&lt; prev</a>
 {% endif %}
 {% if table != [] %}
-    <a href="/tables/{{path}}?start={{start+count}}&count={{count}}">next</a>
+    <a href="/tables/{{path}}?start={{start+count}}&count={{count}}">next &gt;&gt;</a>
 {% else %}
     <a href="/tables/{{path}}">return</a>
 {% endif %}
 <form method="get">
-    <input id="nav_start" type="number" min="0" max="1000000" name="start" placeholder="start" value="{{start}}" />
-    <input id="nav_count" type="number" min="1" max="{{max_count}}" name="count" placeholder="count" value="{{count}}" />
-    <input id="nav_submit" type="submit" value="view {{start}}-{{start+count-1}}" />
+    <input id="nav_start_1" type="number" min="0" max="1000000" name="start" placeholder="start" value="{{start}}" />
+    <input id="nav_count_1" type="number" min="1" max="{{max_count}}" name="count" placeholder="count" value="{{count}}" />
+    <input id="nav_submit_1" type="submit" value="view {{start}}-{{start+count-1}}" />
 </form>
 <script type="text/javascript">
-var start = document.querySelector('#nav_start');
-var count = document.querySelector('#nav_count');
-var result = document.querySelector('#nav_submit');
-function nav_calc() {
-    let sv = Number(start.value);
-    let cv = Number(count.value);
-    result.value = 'view ' + sv + '-' + (sv + cv - 1);
+var start_1 = document.querySelector('#nav_start_1');
+var count_1 = document.querySelector('#nav_count_1');
+var result_1 = document.querySelector('#nav_submit_1');
+function nav_calc_1() {
+    let sv = Number(start_1.value);
+    let cv = Number(count_1.value);
+    result_1.value = 'view ' + sv + '-' + (sv + cv - 1);
 }
-start.addEventListener('input',() => nav_calc());
-count.addEventListener('input',() => nav_calc());
+start_1.addEventListener('input',() => nav_calc_1());
+count_1.addEventListener('input',() => nav_calc_1());
 </script>
-</span>
+</div>
 
 {# table data #}
 {% if table == [] %}
@@ -80,13 +80,43 @@ count.addEventListener('input',() => nav_calc());
             {{index}}:
 {% endif %}
         </td>
-        <td class="expr">{{expr}}</td>
-        <td>
+        <td class="expr"><span class="expr">{{expr}}</span></td>
+        <td class="factorization">
 {{factors}}
         </td>
     </tr>
     {% endfor %}
 </table>
+
+{# page nav #}
+<div class="table_page_nav">
+    Index range: {{start}} &ndash; {{start+count-1}}
+{% if start > 0 %}
+    <a href="/tables/{{path}}?start={{start-count}}&count={{count}}">&lt;&lt; prev</a>
+{% endif %}
+{% if table != [] %}
+    <a href="/tables/{{path}}?start={{start+count}}&count={{count}}">next &gt;&gt;</a>
+{% else %}
+    <a href="/tables/{{path}}">return</a>
+{% endif %}
+<form method="get">
+    <input id="nav_start_2" type="number" min="0" max="1000000" name="start" placeholder="start" value="{{start}}" />
+    <input id="nav_count_2" type="number" min="1" max="{{max_count}}" name="count" placeholder="count" value="{{count}}" />
+    <input id="nav_submit_2" type="submit" value="view {{start}}-{{start+count-1}}" />
+</form>
+<script type="text/javascript">
+var start_2 = document.querySelector('#nav_start_2');
+var count_2 = document.querySelector('#nav_count_2');
+var result_2 = document.querySelector('#nav_submit_2');
+function nav_calc_2() {
+    let sv = Number(start_2.value);
+    let cv = Number(count_2.value);
+    result_2.value = 'view ' + sv + '-' + (sv + cv - 1);
+}
+start_2.addEventListener('input',() => nav_calc_2());
+count_2.addEventListener('input',() => nav_calc_2());
+</script>
+</div>
 {% endif %}
 
 {# category directory #}
@@ -102,8 +132,9 @@ count.addEventListener('input',() => nav_calc());
     {% endfor %}
     {% endif %}
 </div>
-{% endif %}
+{% endif %}{# if table #}
 
+{# admin #}
 {% if is_admin %}
 <div id="admin_stuff">
 <h2>Admin</h2>
@@ -204,10 +235,10 @@ count.addEventListener('input',() => nav_calc());
 </fieldset></form>
 {% endif %}
 </div>
-{% endif %}
+{% endif %}{# if is_admin #}
 
 {% else %}
 <p>This table/category path does not exist.</p>
-{% endif %}
+{% endif %}{# if exists #}
 
 {% endblock %}
