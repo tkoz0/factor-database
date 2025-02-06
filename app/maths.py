@@ -1,6 +1,7 @@
 import gmpy2
 import cypari2
 pari = cypari2.Pari()
+pari.allocatemem(32000000)
 
 def prpTest(n:int, k:int = 0) -> bool:
     '''
