@@ -54,7 +54,8 @@ if not args.no_recreate_database:
             'log_to_file': True,
             'admin_email': 'admin@example.com',
             'proxy_fix_mode': None,
-            'proxy_fix_hops': 0
+            'proxy_fix_hops': 0,
+            'pari_mem': 32000000
         },f,indent=4)
 
 # import afterward because it creates a connection to the database

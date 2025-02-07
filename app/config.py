@@ -35,7 +35,8 @@ config = {
     'log_to_file': True,
     'admin_email': 'admin@example.com',
     'proxy_fix_mode': 'none',
-    'proxy_fix_hops': 0
+    'proxy_fix_hops': 0,
+    'pari_mem': 32000000
 }
 '''
 
@@ -146,3 +147,8 @@ assert PROXY_FIX_MODE is None or isinstance(PROXY_FIX_MODE,str)
 assert PROXY_FIX_MODE is None or PROXY_FIX_MODE in ('legacy','modern')
 assert isinstance(PROXY_FIX_HOPS,int)
 assert PROXY_FIX_MODE is None or PROXY_FIX_HOPS > 0
+
+# memory size for pari used to prove primality
+PARI_MEM: int = config['pari_mem']
+assert isinstance(PARI_MEM,int)
+assert PARI_MEM >= 8000000

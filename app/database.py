@@ -1576,16 +1576,16 @@ def reorderSubcategories(path:tuple[str,...]|str, order:list[str]):
         _dblog_info(f'reordered listing for {_path_to_str(path)}')
 
 def _catwalk(row:CategoryRow,path:tuple[str,...],
-             ret:list[tuple[tuple[str,...],CategoryRow]],
-             con:psycopg.Connection):
+             con:psycopg.Connection) \
+                -> Generator[tuple[tuple[str,...],CategoryRow],None,None]:
     # recursively find children
-    ret.append((path,row))
+    yield (path,row)
     children = _getcatchi(row.id,con)
     for child in children:
-        _catwalk(child,path+(child.name,),ret,con)
+        yield from _catwalk(child,path+(child.name,),con)
 
 def walkCategories(path:tuple[str,...]|str = ()) \
-        -> list[tuple[tuple[str,...],CategoryRow]]:
+        -> Generator[tuple[tuple[str,...],CategoryRow],None,None]:
     '''
     iterate a categories subtree, default starting at root
     '''
@@ -1593,12 +1593,10 @@ def walkCategories(path:tuple[str,...]|str = ()) \
         path = _str_to_path(path)
 
     with _dbcon() as con:
-        ret: list[tuple[tuple[str,...],CategoryRow]] = []
         data = _getcatp(path,con)
         if data is None:
             raise FDBException('path does not exist')
-        _catwalk(data[-1],path,ret,con)
-        return ret
+        yield from _catwalk(data[-1],path,con)
 
 def createCategoryNumber(path:tuple[str,...]|str, index:int,
                          value:int|str, expr:str):
@@ -2114,3 +2112,27 @@ def checkDatabaseConsistency():
     for best results there should be no other database connections
     '''
     raise NotImplementedError()
+
+def getDatabaseSize() -> int:
+    '''
+    database size in bytes (using pg_database_size)
+    '''
+    with _dbcon() as con:
+        cur = con.execute("select pg_database_size(%s);",(DB_NAME,))
+        return cur.fetchone()[0] # type:ignore
+
+def getNumbersCount() -> int:
+    '''
+    how many numbers are stored in database
+    '''
+    with _dbcon() as con:
+        cur = con.execute("select count(*) from numbers;")
+        return cur.fetchone()[0] # type:ignore
+
+def getFactorsCount() -> int:
+    '''
+    how many factors are stored in database
+    '''
+    with _dbcon() as con:
+        cur = con.execute("select count(*) from factors;")
+        return cur.fetchone()[0] # type:ignore
