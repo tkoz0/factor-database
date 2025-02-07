@@ -1085,7 +1085,8 @@ def factorNumberByIdWithFactorDB(i:int):
     # query factordb.com and get list of factors
     resp = requests.get(_endpoint_factordb,{'query':str(n_row.value)})
     if not resp.ok:
-        raise FDBException('invalid request to factordb.com')
+        raise FDBException(f'invalid request to factordb.com: '
+                           f'code={resp.status_code}, text={resp.text}')
     data = resp.json()
 
     # use these to make progress
@@ -1106,7 +1107,8 @@ def factorNumberByValueWithFactorDB(n:int):
     # query factordb.com and get list of factors
     resp = requests.get(_endpoint_factordb,{'query':str(n)})
     if not resp.ok:
-        raise FDBException('invalid request to factordb.com')
+        raise FDBException(f'invalid request to factordb.com: '
+                           f'code={resp.status_code}, text={resp.text}')
     data = resp.json()
 
     # use these to make progress
