@@ -3,10 +3,12 @@ import hashlib
 import ipaddress
 import os
 import re
+import requests
 import secrets
 import struct
 import sys
 import time
+from typing import Generator,Iterable
 
 import psycopg
 import psycopg.sql
@@ -68,6 +70,8 @@ _username_re = re.compile(r'\w+')
 _email_re = re.compile(r'[\w\-\.]+@[\w\-]+(\.[\w\-]+)+')
 
 _sess_len = timedelta(days=SESSION_LEN_DAYS)
+
+_endpoint_factordb = 'https://factordb.com/api'
 
 #===============================================================================
 # helper functions
@@ -214,7 +218,7 @@ def _dbnum_to_int(b:bytes) -> int:
     ''' convert database storage to integer (from byte array) '''
     return int.from_bytes(b,'big',signed=False)
 
-def _spfs_to_dblists(ns:list[int]|tuple[int,...]) \
+def _spfs_to_dblists(ns:Iterable[int]) \
                     -> tuple[bytes|None,bytes|None,bytes|None]:
     '''
     convert small prime factors to byte arrays (big endian) for database
@@ -609,7 +613,7 @@ def _addfac(f:int) -> FactorRow:
                         f'({ret.value.bit_length()} bits)')
         return ret
 
-def _addfacs(i:int,fs:list[int]|tuple[int,...]):
+def _addfacs(i:int,fs:Iterable[int]):
     # try provided factors to make progress on cofactor of number id i
     with _dbcon() as con:
         for f in sorted(fs):
@@ -628,7 +632,7 @@ def _addfacs(i:int,fs:list[int]|tuple[int,...]):
             except:
                 pass
 
-def addNumber(n:int,fs:list[int]|tuple[int,...]=[]) -> tuple[bool,NumberRow]:
+def addNumber(n:int,fs:Iterable[int]=[]) -> tuple[bool,NumberRow]:
     '''
     adds a number to the database, exception if n <= 0 or above size limit
     returns a tuple (True/False for if it was newly added, the row object)
@@ -1060,6 +1064,85 @@ def makeFactorProgress(i:int):
             except:
                 pass
             break
+
+#===============================================================================
+# other factorization functions
+#===============================================================================
+
+def factorWithFactorDB(n:int):
+    '''
+    get factors from factordb.com to use for making factoring progress
+    if n is newly created on factordb.com then it may have to be queried later
+    exception if n is not in database or an error occurs with factordb.com
+    '''
+    with _dbcon() as con:
+        nrow = _getnumv(n,con)
+        if nrow is None:
+            raise FDBException('number not in database')
+
+    # query factordb.com and get list of factors
+    resp = requests.get(_endpoint_factordb,{'query':str(n)})
+    if not resp.ok:
+        raise FDBException('invalid request to factordb.com')
+    data = resp.json()
+
+    # use these to make progress
+    _addfacs(nrow.id,(int(f) for f,_ in data['factors']))
+
+def _value_size_param(bitlen:int|None) -> tuple[int,bytes]:
+    # return byte length and largest first byte value
+    if bitlen is None:
+        bitlen = NUM_BIT_LIM
+    bytelen = (bitlen+7)//8
+    extrabits = bitlen % 8
+    firstbytemax = bytes([255 if extrabits == 0 else 2**(extrabits+1)-1])
+    return bytelen,firstbytemax
+
+def smallestUnknowns(limit:int|None=None, maxbits:int|None=None) \
+            -> Generator[FactorRow,None,None]:
+    '''
+    find smallest factors which are not known to be either prime or composite
+    '''
+    maxbytes,firstbytemax = _value_size_param(maxbits)
+
+    with _dbcon() as con:
+        cur = con.execute("select * from factors where primality = %s "
+                          "and length(value) <= %s and substr(value,1,1) <= %s "
+                          "order by length(value), value limit %s;",
+                          (Primality.UNKNOWN,maxbytes,firstbytemax,limit))
+        for row in cur:
+            yield FactorRow(row)
+
+def smallestComposites(limit:int|None=None, maxbits:int|None=None) \
+            -> Generator[FactorRow,None,None]:
+    '''
+    find smallest factors which are known to be composite and are not factored
+    '''
+    maxbytes,firstbytemax = _value_size_param(maxbits)
+
+    with _dbcon() as con:
+        cur = con.execute("select * from factors where primality = %s "
+                          "and length(value) <= %s and substr(value,1,1) <= %s "
+                          "and f1_id is null "
+                          "order by length(value), value limit %s;",
+                          (Primality.COMPOSITE,maxbytes,firstbytemax,limit))
+        for row in cur:
+            yield FactorRow(row)
+
+def smallestProbablePrimes(limit:int|None=None, maxbits:int|None=None) \
+            -> Generator[FactorRow,None,None]:
+    '''
+    find smallest factors which are probably prime but not proven yet
+    '''
+    maxbytes,firstbytemax = _value_size_param(maxbits)
+
+    with _dbcon() as con:
+        cur = con.execute("select * from factors where primality = %s "
+                          "and length(value) <= %s and substr(value,1,1) <= %s "
+                          "order by length(value), value limit %s;",
+                          (Primality.PROBABLE,maxbytes,firstbytemax,limit))
+        for row in cur:
+            yield FactorRow(row)
 
 #===============================================================================
 # number categories
