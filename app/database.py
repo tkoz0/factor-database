@@ -618,19 +618,22 @@ def _addfacs(i:int,fs:Iterable[int]):
     with _dbcon() as con:
         for f in sorted(fs):
 
-            # get the current cofactor
+            # get the composite factors
             row = _getnumi(i,con)
             assert row is not None, 'internal error'
             if row.cof_id is None:
                 break
-            cof = _getfaci(row.cof_id,con)
-            assert cof is not None, 'internal error'
+            factors = _get_numfac_helper(row,con)
+            assert factors is not None, 'internal error'
+            factors = [g for g,p,_ in factors
+                       if p == Primality.UNKNOWN or p == Primality.COMPOSITE]
 
-            # try to factor it
-            try:
-                addFactor(cof.value,f)
-            except:
-                pass
+            # try to factor any composite
+            for g in factors:
+                try:
+                    addFactor(g,f)
+                except:
+                    pass
 
 def addNumber(n:int,fs:Iterable[int]=[]) -> tuple[bool,NumberRow]:
     '''
@@ -1069,15 +1072,35 @@ def makeFactorProgress(i:int):
 # other factorization functions
 #===============================================================================
 
-def factorWithFactorDB(n:int):
+def factorNumberByIdWithFactorDB(i:int):
+    '''
+    get factors from factordb.com
+    same as factorNumberByValueWithFactorDB but using number ID
+    '''
+    with _dbcon() as con:
+        n_row = _getnumi(i,con)
+        if n_row is None:
+            raise FDBException('id not in database')
+
+    # query factordb.com and get list of factors
+    resp = requests.get(_endpoint_factordb,{'query':str(n_row.value)})
+    if not resp.ok:
+        raise FDBException('invalid request to factordb.com')
+    data = resp.json()
+
+    # use these to make progress
+    _dblog_info(f'factoring number id {n_row.id} with factordb.com')
+    _addfacs(n_row.id,(int(f) for f,_ in data['factors']))
+
+def factorNumberByValueWithFactorDB(n:int):
     '''
     get factors from factordb.com to use for making factoring progress
     if n is newly created on factordb.com then it may have to be queried later
     exception if n is not in database or an error occurs with factordb.com
     '''
     with _dbcon() as con:
-        nrow = _getnumv(n,con)
-        if nrow is None:
+        n_row = _getnumv(n,con)
+        if n_row is None:
             raise FDBException('number not in database')
 
     # query factordb.com and get list of factors
@@ -1087,7 +1110,36 @@ def factorWithFactorDB(n:int):
     data = resp.json()
 
     # use these to make progress
-    _addfacs(nrow.id,(int(f) for f,_ in data['factors']))
+    _dblog_info(f'factoring number id {n_row.id} with factordb.com')
+    _addfacs(n_row.id,[int(f) for f,_ in data['factors']])
+
+def factorCategoryWithFactorDB(path:tuple[str,...]|str):
+    '''
+    calls factorNumberWithFactorDB() for all numbers in a category
+    '''
+    if isinstance(path,str):
+        path = _str_to_path(path)
+
+    with _dbcon() as con:
+        cat = _getcatp(path,con)
+        if cat is None:
+            raise FDBException('category does not exist')
+        cat = cat[-1]
+
+        cur = con.execute("select * from sequences where cat_id = %s "
+                          "order by index;",(cat.id,))
+        for _,_,n_id,_,_ in cur.fetchall():
+            if n_id is None:
+                continue
+
+            n_row = _getnumi(n_id,con)
+            assert n_row is not None, 'internal error'
+            factors = _get_numfac_helper(n_row,con)
+            assert factors is not None, 'internal error'
+
+            if any(p == Primality.UNKNOWN or p == Primality.COMPOSITE
+                   for _,p,_ in factors):
+                factorNumberByIdWithFactorDB(n_row.id)
 
 def _value_size_param(bitlen:int|None) -> tuple[int,bytes]:
     # return byte length and largest first byte value

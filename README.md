@@ -22,6 +22,7 @@ compatibility has not been evaluated yet.
   - requires libgmp-dev package (ubuntu)
 - CyPari2 (2.2.0)
   - requires libpari-dev package (ubuntu)
+- Requests (2.32.3)
 
 # installation
 
