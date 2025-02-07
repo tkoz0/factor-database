@@ -46,8 +46,8 @@ path_ecm = f'{script_dir}/ecm/ecm'
 # ==========
 
 using_re = re.compile(r'Using B1=(\d+), B2=(\d+), polynomial (.+), sigma=(.+)')
-factor_re = re.compile(r'Found (prime|composite) factor of \d+ digits: (\d+)')
-cofactor_re = re.compile(r'(Prime|Composite) cofactor (\d+) has \d+ digits')
+factor_re = re.compile(r'Found (probable prime|prime|composite) factor of \d+ digits: (\d+)')
+cofactor_re = re.compile(r'(Probable prime|Prime|Composite) cofactor (\d+) has \d+ digits')
 
 def ecm_runner(n:int,
                curves:int,
@@ -195,11 +195,11 @@ def ecm_runner(n:int,
                     m2 = cofactor_re.match(line)
                     if m1:
                         status,value = m1.groups()
-                        found_factor = (int(value), status == 'prime')
+                        found_factor = (int(value), status != 'composite')
                         found_index = i
                     if m2:
                         status,value = m2.groups()
-                        found_cofactor = (int(value), status == 'Prime')
+                        found_cofactor = (int(value), status != 'Composite')
                         found_index = i
 
                 completed_curves += 1
