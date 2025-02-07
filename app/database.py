@@ -1115,7 +1115,7 @@ def factorNumberByValueWithFactorDB(n:int):
     _dblog_info(f'factoring number id {n_row.id} with factordb.com')
     _addfacs(n_row.id,[int(f) for f,_ in data['factors']])
 
-def factorCategoryWithFactorDB(path:tuple[str,...]|str):
+def factorCategoryWithFactorDB(path:tuple[str,...]|str, start:int, count:int):
     '''
     calls factorNumberWithFactorDB() for all numbers in a category
     '''
@@ -1129,7 +1129,8 @@ def factorCategoryWithFactorDB(path:tuple[str,...]|str):
         cat = cat[-1]
 
         cur = con.execute("select * from sequences where cat_id = %s "
-                          "order by index;",(cat.id,))
+                          "and %s <= index and index < %s "
+                          "order by index;",(cat.id,start,start+count))
         for _,_,n_id,_,_ in cur.fetchall():
             if n_id is None:
                 continue
