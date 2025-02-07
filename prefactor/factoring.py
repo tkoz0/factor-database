@@ -153,6 +153,7 @@ def ecm_runner(n:int,
                 continue
             line = last_line[i]
             last_line[i] = ''
+
             if output:
                 output[i].append(line)
             if debug:
@@ -186,13 +187,18 @@ def ecm_runner(n:int,
             elif line.startswith('****'): # factored
                 if progress_stream is not None:
                     progress_tqdm.close()
+
                 for line in procs[i].stdout: # type:ignore
+                    if line == '\n' or line.startswith('APR'):
+                        continue # skip APR primality test lines
+
                     if output:
                         output[i].append(line)
                     if debug:
                         print(line)
                     m1 = factor_re.match(line)
                     m2 = cofactor_re.match(line)
+
                     if m1:
                         status,value = m1.groups()
                         found_factor = (int(value), status != 'composite')
