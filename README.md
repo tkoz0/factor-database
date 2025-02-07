@@ -23,6 +23,7 @@ compatibility has not been evaluated yet.
 - CyPari2 (2.2.0)
   - requires libpari-dev package (ubuntu)
 - Requests (2.32.3)
+- Tqdm (4.67.1)
 
 # installation
 
