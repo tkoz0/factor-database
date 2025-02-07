@@ -25,7 +25,7 @@ for path,row in db.walkCategories():
             print(f'/{'/'.join(path)} EMPTY')
         else:
             numlens = [n.value.bit_length() for _,_,n,_ in info if isinstance(n,db.NumberRow)]
-            complete_count = sum(1 for _,_,n,_ in info if isinstance(n,db.NumberRow) and n.complete)
+            complete_count = sum(1 for _,_,n,_ in info if not isinstance(n,db.NumberRow) or n.complete)
             i0,i1 = min(indexes),max(indexes)
             b0,b1 = (0,0) if numlens == [] else (min(numlens),max(numlens))
             print(f'/{'/'.join(path)} '
