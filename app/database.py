@@ -1072,6 +1072,26 @@ def makeFactorProgress(i:int):
 # other factorization functions
 #===============================================================================
 
+def factorNumberByIdWithFactors(i:int,fs:Iterable[int]):
+    '''
+    use a factor list to make progress on factoring a number
+    '''
+    with _dbcon() as con:
+        row = _getnumi(i,con)
+        if row is None:
+            raise FDBException(f'no number with id {i} exists')
+    _addfacs(i,fs)
+
+def factorNumberByValueWithFactors(n:int,fs:Iterable[int]):
+    '''
+    use a factor list to make progress on factoring a number
+    '''
+    with _dbcon() as con:
+        row = _getnumv(n,con)
+        if row is None:
+            raise FDBException(f'number does not exist in database')
+    _addfacs(row.id,fs)
+
 def factorNumberByIdWithFactorDB(i:int):
     '''
     get factors from factordb.com
@@ -1089,9 +1109,7 @@ def factorNumberByIdWithFactorDB(i:int):
                            f'code={resp.status_code}, text={resp.text}')
     data = resp.json()
 
-    # use these to make progress
-    _dblog_info(f'factoring number id {n_row.id} with factordb.com')
-    _addfacs(n_row.id,(int(f) for f,_ in data['factors']))
+    factorNumberByIdWithFactors(i,(int(f) for f,_ in data['factors']))
 
 def factorNumberByValueWithFactorDB(n:int):
     '''
@@ -1111,13 +1129,14 @@ def factorNumberByValueWithFactorDB(n:int):
                            f'code={resp.status_code}, text={resp.text}')
     data = resp.json()
 
-    # use these to make progress
-    _dblog_info(f'factoring number id {n_row.id} with factordb.com')
-    _addfacs(n_row.id,[int(f) for f,_ in data['factors']])
+    factorNumberByValueWithFactors(n,(int(f) for f,_ in data['factors']))
 
-def factorCategoryWithFactorDB(path:tuple[str,...]|str, start:int, count:int):
+def factorCategoryWithFactorDB(path:tuple[str,...]|str,
+                               start:int, count:int,
+                               delay:float):
     '''
     calls factorNumberWithFactorDB() for all numbers in a category
+    use delay time to wait between requests to server
     '''
     if isinstance(path,str):
         path = _str_to_path(path)
@@ -1143,6 +1162,7 @@ def factorCategoryWithFactorDB(path:tuple[str,...]|str, start:int, count:int):
             if any(p == Primality.UNKNOWN or p == Primality.COMPOSITE
                    for _,p,_ in factors):
                 factorNumberByIdWithFactorDB(n_row.id)
+                time.sleep(delay)
 
 def _value_size_param(bitlen:int|None) -> tuple[int,bytes]:
     # return byte length and largest first byte value
