@@ -196,16 +196,8 @@ body {
     display: block;
 }
 
-.num_comp:hover {
-    background: lightgray;
-}
-
 .num_incomp {
     background: yellow;
-}
-
-.num_incomp:hover {
-    background: darkgray;
 }
 
 .index {
