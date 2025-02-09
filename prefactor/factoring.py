@@ -7,7 +7,7 @@ requires
 - ecm, see https://gitlab.inria.fr/zimmerma/ecm
 
 1. trial division up to 10^5 (all factors up to 5 digits will be found)
-2. pollard rho for 10^6 iterations (high chance to find factors up to 12 digits)
+2. pollard rho for 10^5 iterations (high chance to find factors up to 10 digits)
 3. ecm b1=2000, 2000 curves (very high chance to find smaller factors)
 4. ecm b1=10000, 1000 curves (high chance to find factors up to 20 digits)
 5. ecm b1=50000, 500 curves (moderate chance to find factors up to 25 digits)

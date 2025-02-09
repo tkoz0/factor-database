@@ -19,6 +19,6 @@ parser.add_argument('count',type=int)
 parser.add_argument('delay',type=float)
 args = parser.parse_args()
 
-sys.stderr.write(f'{args}')
+sys.stderr.write(f'{args}\n')
 
 db.factorCategoryWithFactorDB(args.path,args.start,args.count,args.delay)
