@@ -29,7 +29,7 @@ This is to limit database size by storing only significant nontrivial results.
 # some ideas
 
 - mersenne
-- fermat
+- fermat - grows too quickly
 - fibonacci, lucas
 - padovan, narayana, perrin
 - generalizations of fibonacci and similar sequences
@@ -44,6 +44,7 @@ This is to limit database size by storing only significant nontrivial results.
   - pi: 3, 31, 314, 3141, 31415, 314159, ...
   - e: 2, 27, 271, 2718, 27182, 271828, ...
   - see y-cruncher ideas for more
+  - consider both floor and ceiling
 - numerator/denominator of convergents to irrationals
 - dynamic programming recurrence sequences
 - combinatorics formulas
@@ -81,6 +82,16 @@ This is to limit database size by storing only significant nontrivial results.
 - fibonacci base ideas (zeckendorf representation)
 - extensions of sequences to negative indexes if they give interesting results
 - constants for the random fibonacci sequence
+- pseudoprimes if there are any types that grow quickly enough
+
+# ideas from oeis.org
+
+- A000055 number of trees with n unlabeled nodes
+- A000088 number of simple graphs on n unlabeled nodes
+- A000664 number of graphs with n edges
+- A001187 number of connected labeled graphs with n nodes
+- A001349 number of simple connected graphs on n unlabeled nodes
+- A002494 number of n node graphs without isolated nodes
 
 # ideas from stdkmd.net
 
