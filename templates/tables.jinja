@@ -73,9 +73,13 @@ count_1.addEventListener('input',() => nav_calc_1());
 <table id="factor_table">
     {% for index,expr,factors,num_id,complete in table %}
     <tr class="{{('num_incomp','num_comp')[complete]}}">
-        <td class="index">{% if not complete %}*{% endif %}
+        <td class="index">
 {% if num_id %}
+    {% if not complete %}
+            *<a href="/number/{{num_id}}">{{index}}:</a>
+    {% else %}
             <a href="/number/{{num_id}}">{{index}}:</a>
+    {% endif %}
 {% else %}
             {{index}}:
 {% endif %}
