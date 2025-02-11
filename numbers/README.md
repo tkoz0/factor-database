@@ -83,6 +83,7 @@ This is to limit database size by storing only significant nontrivial results.
 - extensions of sequences to negative indexes if they give interesting results
 - constants for the random fibonacci sequence
 - pseudoprimes if there are any types that grow quickly enough
+- fibonacci/lucas plus/minus small constant (and other important sequences)
 
 # ideas from oeis.org
 
