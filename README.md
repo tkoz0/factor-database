@@ -54,9 +54,23 @@ For development
 - find a better way to update factors with few operations
 - function for removing small factors (64 bit) from the database
 - functions for cleaning up other database data
+  - remove unreferenced primes/numbers
 - setup more proper testing (quart: app.test_request_context)
 - setup a python virtual environment as part of the repo
+  - requires at least python3.12
+  - include a requirements.txt
 - setup database triggers if they make sense anywhere
+- organize sample databases into a few different options
+  - small (possibly with no numbers)
+  - large (with similarities to production)
+  - add some more complete factorization data from factordb.com
+- implement an api
+  - some possible routes below
+  - choose get/post where appropriate
+  - /api/get_number (get, by id or value)
+  - /api/get_factor (get, by id or value)
+  - /api/submit_factors (post)
+  - /api/list_category (get)
 
 # feature goals
 
