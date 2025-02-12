@@ -62,15 +62,38 @@ jacobsthal = _const_recur_linear_cache((0,1),(2,1))
 # V(1,-2)
 jacobsthal_lucas = _const_recur_linear_cache((2,1),(2,1))
 
+# U(2,-1)
 pell = _const_recur_linear_cache((0,1),(1,2))
 
+# V(2,-1)
 pell_lucas = _const_recur_linear_cache((2,2),(1,2))
 
-def lucas_u(p:int,q:int) -> Callable[[int],int]:
+def _make_lucas_u(p:int,q:int) -> Callable[[int],int]:
     return _const_recur_linear_cache((0,1),(-q,p))
 
-def lucas_v(p:int,q:int) -> Callable[[int],int]:
+def _make_lucas_v(p:int,q:int) -> Callable[[int],int]:
     return _const_recur_linear_cache((2,p),(-q,p))
+
+_cache_lu: dict[tuple[int,int],Callable[[int],int]] = dict()
+_cache_lv: dict[tuple[int,int],Callable[[int],int]] = dict()
+
+def lucas_u(p:int,q:int,n:int) -> int:
+    '''
+    generic lucas U sequence function with result caching
+    '''
+    global _cache_lu
+    if (p,q) not in _cache_lu:
+        _cache_lu[(p,q)] = _make_lucas_u(p,q)
+    return _cache_lu[(p,q)](n)
+
+def lucas_v(p:int,q:int,n:int) -> int:
+    '''
+    generic lucas V sequence function with result caching
+    '''
+    global _cache_lv
+    if (p,q) not in _cache_lv:
+        _cache_lv[(p,q)] = _make_lucas_v(p,q)
+    return _cache_lv[(p,q)](n)
 
 def factorial(n:int) -> int:
     assert n >= 0
@@ -129,19 +152,19 @@ if __name__ == '__main__':
     assert [pell_lucas(n) for n in range(11)] \
         == [2,2,6,14,34,82,198,478,1154,2786,6726]
 
-    assert all(lucas_u(1,-1)(n) == fibonacci(n) for n in range(100))
-    assert all(lucas_v(1,-1)(n) == lucas(n) for n in range(100))
-    assert all(lucas_u(2,-1)(n) == pell(n) for n in range(100))
-    assert all(lucas_v(2,-1)(n) == pell_lucas(n) for n in range(100))
-    assert all(lucas_u(1,-2)(n) == jacobsthal(n) for n in range(100))
-    assert all(lucas_v(1,-2)(n) == jacobsthal_lucas(n) for n in range(100))
-    assert all(lucas_u(3,2)(n) == 2**n-1 for n in range(100))
-    assert all(lucas_v(3,2)(n) == 2**n+1 for n in range(100))
+    assert all(lucas_u(1,-1,n) == fibonacci(n) for n in range(100))
+    assert all(lucas_v(1,-1,n) == lucas(n) for n in range(100))
+    assert all(lucas_u(2,-1,n) == pell(n) for n in range(100))
+    assert all(lucas_v(2,-1,n) == pell_lucas(n) for n in range(100))
+    assert all(lucas_u(1,-2,n) == jacobsthal(n) for n in range(100))
+    assert all(lucas_v(1,-2,n) == jacobsthal_lucas(n) for n in range(100))
+    assert all(lucas_u(3,2,n) == 2**n-1 for n in range(100))
+    assert all(lucas_v(3,2,n) == 2**n+1 for n in range(100))
 
     # repunit in a few bases
     for x in range(2,37):
-        assert all(lucas_u(x+1,x)(n) == (x**n-1)//(x-1) for n in range(100))
-        assert all(lucas_v(x+1,x)(n) == x**n+1 for n in range(100))
+        assert all(lucas_u(x+1,x,n) == (x**n-1)//(x-1) for n in range(100))
+        assert all(lucas_v(x+1,x,n) == x**n+1 for n in range(100))
 
     assert [factorial(n) for n in range(10)] \
         == [1,1,2,6,24,120,720,5040,40320,362880]

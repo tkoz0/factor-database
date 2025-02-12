@@ -12,9 +12,7 @@ import sys
 import gmpy2
 
 from factoring import prefactor_runner
-import bases
-import primes
-import sequences
+from expreval import expreval
 
 # factoring parameters
 lim_tdiv = 10**5
@@ -42,12 +40,7 @@ for n in range(args.start,args.finish):
     # eval is unsafe to use so this should only be used properly by admin
     output = {
         'index': n,
-        'value': eval(args.calc.replace('{}','n'),{
-            'bases': bases,
-            'primes': primes,
-            'sequences': sequences,
-            'n': n
-        }),
+        'value': expreval(args.calc,n),
         'expr': args.expr.replace('{}',str(n))
     }
     assert isinstance(output['value'],int)

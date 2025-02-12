@@ -1,5 +1,12 @@
 '''
 code for handling things with primality
+
+public interface:
+- isPrp(n,k=0) test probable primality with gmp, bpsw + k miller rabin
+- isPrime(n) test provable primality with pari/gp
+- primeSieve(L) list primes below L
+- nthPrime(n) nth prime (1-indexed), maintains cached results
+- nthComposite(n) nth composite (1-indexed), maintains cached results
 '''
 
 import gmpy2
