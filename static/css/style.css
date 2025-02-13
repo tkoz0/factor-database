@@ -133,6 +133,11 @@ body {
     margin-left: 16px;
 }
 
+#api_key {
+    background: lightgreen;
+    padding: 5px;
+}
+
 /* factor table */
 
 #factor_table {

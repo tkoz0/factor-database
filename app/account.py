@@ -87,6 +87,7 @@ async def account_post():
     code = 200
     session = app.util.getSession()
     ok = False
+    key = None
 
     if session is None:
         msg = 'You are not logged in.'
@@ -117,13 +118,24 @@ async def account_post():
                 ok = False
                 code = 400
 
+    elif 'api' in data and data['api'] == '1':
+
+        user_row = app.database.getUser(session.user_id)
+        assert user_row is not None, 'internal error'
+        key = app.database.makeAPIKey(session.user_id)
+        msg = f'API key generated. Please save it securely.'
+        ok = True
+
     else:
-        msg = 'Malformed password change request.'
+        msg = 'Malformed request.'
         code = 400
+
+    if key is not None:
+        key = key.hex()
 
     return quart.Response(
         await quart.render_template('account.jinja',page='account',
-                                    post_ok=ok,post_msg=msg,
+                                    post_ok=ok,post_msg=msg,api_key=key,
                                     **app.util.getPageInfo()),code)
 
 @bp.route('/signup')

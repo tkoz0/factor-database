@@ -1755,7 +1755,7 @@ class UserRow:
     def __init__(self,row):
         if DEBUG_EXTRA:
             assert isinstance(row,tuple)
-            assert len(row) == 11
+            assert len(row) == 12
             assert isinstance(row[0],int)
             assert row[1] is None or isinstance(row[1],str)
             assert row[2] is None or isinstance(row[2],str)
@@ -1767,6 +1767,7 @@ class UserRow:
             assert row[8] is None or isinstance(row[8],datetime)
             assert isinstance(row[9],bool)
             assert isinstance(row[10],bool)
+            assert row[11] is None or isinstance(row[11],bytes)
         self.id: int = row[0]
         self.username: str|None = row[1]
         self.email: str|None = row[2]
@@ -1778,6 +1779,7 @@ class UserRow:
         self.last_login: datetime|None = row[8]
         self.is_disabled: bool = row[9]
         self.is_admin: bool = row[10]
+        self.api_key: bytes|None = row[11]
 
     def __repr__(self) -> str:
         return f'<UserRow(' \
@@ -2080,6 +2082,29 @@ def deleteUser(user:str):
         con.execute("delete from sessions where user_id = %s;",(row.id,))
         con.commit()
         _dblog_info(f'deleted user id {row.id}')
+
+def makeAPIKey(user:str|int) -> bytes:
+    '''
+    generate a new API key for the user
+    '''
+    key = _gen_tkn()
+    with _dbcon() as con:
+        user_row = getUser(user)
+        if user_row is None:
+            raise FDBException('user does not exist')
+        con.execute("update users set api_key = %s where id = %s;",
+                    (_hash_tkn(key),user_row.id))
+    return key
+
+def findAPIKey(key:bytes) -> None|UserRow:
+    '''
+    lookup the user associated with an API key
+    '''
+    with _dbcon() as con:
+        cur = con.execute("select * from users where api_key = %s;",
+                          (_hash_tkn(key),))
+        row = cur.fetchone()
+        return None if row is None else UserRow(row)
 
 #===============================================================================
 # contributions

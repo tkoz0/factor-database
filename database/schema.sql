@@ -156,6 +156,7 @@ create table users
     last_login timestamp default null,
     is_disabled boolean default false not null,
     is_admin boolean default false not null,
+    api_key bytea unique,
     constraint check_pwd_hash check (length(pwd_hash) = 64),
     constraint check_pwd_salt check (length(pwd_salt) = 64),
     constraint check_username check (
@@ -165,7 +166,7 @@ create table users
 
 create table sessions
 (
-    user_id int not null,
+    user_id bigint not null,
     -- user cookie stores token, server stores token hash
     token_hash bytea unique not null,
     created timestamp default timezone('utc',now()) not null,
