@@ -1080,7 +1080,8 @@ def factorNumberByIdWithFactors(i:int,fs:Iterable[int]):
         row = _getnumi(i,con)
         if row is None:
             raise FDBException(f'no number with id {i} exists')
-    _addfacs(i,fs)
+    if not row.complete:
+        _addfacs(i,fs)
 
 def factorNumberByValueWithFactors(n:int,fs:Iterable[int]):
     '''
@@ -1090,7 +1091,8 @@ def factorNumberByValueWithFactors(n:int,fs:Iterable[int]):
         row = _getnumv(n,con)
         if row is None:
             raise FDBException(f'number does not exist in database')
-    _addfacs(row.id,fs)
+    if not row.complete:
+        _addfacs(row.id,fs)
 
 def factorNumberByIdWithFactorDB(i:int):
     '''
@@ -1101,6 +1103,8 @@ def factorNumberByIdWithFactorDB(i:int):
         n_row = _getnumi(i,con)
         if n_row is None:
             raise FDBException('id not in database')
+    if n_row.complete:
+        return
 
     # query factordb.com and get list of factors
     resp = requests.get(_endpoint_factordb,{'query':str(n_row.value)})
@@ -1121,6 +1125,8 @@ def factorNumberByValueWithFactorDB(n:int):
         n_row = _getnumv(n,con)
         if n_row is None:
             raise FDBException('number not in database')
+    if n_row.complete:
+        return
 
     # query factordb.com and get list of factors
     resp = requests.get(_endpoint_factordb,{'query':str(n)})
@@ -1131,12 +1137,9 @@ def factorNumberByValueWithFactorDB(n:int):
 
     factorNumberByValueWithFactors(n,(int(f) for f,_ in data['factors']))
 
-def factorCategoryWithFactorDB(path:tuple[str,...]|str,
-                               start:int, count:int,
-                               delay:float):
+def factorCategoryIndexWithFactorDB(path:tuple[str,...]|str, index:int):
     '''
-    calls factorNumberWithFactorDB() for all numbers in a category
-    use delay time to wait between requests to server
+    attempts to make factor progress with factordb.com
     '''
     if isinstance(path,str):
         path = _str_to_path(path)
@@ -1147,22 +1150,12 @@ def factorCategoryWithFactorDB(path:tuple[str,...]|str,
             raise FDBException('category does not exist')
         cat = cat[-1]
 
-        cur = con.execute("select * from sequences where cat_id = %s "
-                          "and %s <= index and index < %s "
-                          "order by index;",(cat.id,start,start+count))
-        for _,_,n_id,_,_ in cur.fetchall():
-            if n_id is None:
-                continue
-
-            n_row = _getnumi(n_id,con)
-            assert n_row is not None, 'internal error'
-            factors = _get_numfac_helper(n_row,con)
-            assert factors is not None, 'internal error'
-
-            if any(p == Primality.UNKNOWN or p == Primality.COMPOSITE
-                   for _,p,_ in factors):
-                factorNumberByIdWithFactorDB(n_row.id)
-                time.sleep(delay)
+        cur = con.execute("select num_id from sequences where cat_id = %s "
+                          "and index = %s;",(cat.id,index))
+        row = cur.fetchone()
+        if row is None:
+            raise FDBException('no number with that index')
+        factorNumberByIdWithFactorDB(row[0])
 
 def _value_size_param(bitlen:int|None) -> tuple[int,bytes]:
     # return byte length and largest first byte value

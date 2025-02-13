@@ -7,10 +7,14 @@ use data from factordb.com to add progress to database
 import argparse
 import os
 import sys
+from time import sleep
+from tqdm import tqdm
 scriptdir = os.path.dirname(__file__)
 sys.path.append(f'{scriptdir}/..')
 
 import app.database as db
+
+MAX_DELAY = 60
 
 parser = argparse.ArgumentParser()
 parser.add_argument('path',type=str)
@@ -21,4 +25,18 @@ args = parser.parse_args()
 
 sys.stderr.write(f'{args}\n')
 
-db.factorCategoryWithFactorDB(args.path,args.start,args.count,args.delay)
+itqdm = tqdm(range(args.start,args.start+args.count))
+for i in itqdm:
+    delay = args.delay
+    while True:
+        try:
+            itqdm.write(f'factoring path={args.path} index={i}')
+            db.factorCategoryIndexWithFactorDB(args.path,i)
+            break
+        except Exception as e:
+            itqdm.write(f'exception {type(e)} {str(e)}')
+            if isinstance(e,db.FDBException):
+                exit(1)
+            delay = min(delay*2,MAX_DELAY)
+            itqdm.write(f'waiting {delay} seconds')
+            sleep(delay)
