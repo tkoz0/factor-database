@@ -110,6 +110,19 @@ This is to limit database size by storing only significant nontrivial results.
   - palindrome AA..AABAA..AA
 - cyclotomic numbers
 
+repdigit types in base b, note that some factor trivially to another type
+- repdigit AA..AA (b-1 types)
+- near repdigit AA..AAB ((b-1)\*(b-2) types)
+  - B=0 means it factors to b\*(repdigit AA..AA)
+- near repdigit ABB..BB ((b-1)\*(b-2) types)
+  - B=0 makes the entire number trivially factorable
+- near repdigit AA..AABA ((b-1)\*(b-1) types)
+- near repdigit ABAA..AA ((b-1)\*(b-1) types)
+- plateau/depression ABB..BBA ((b-1)\*(b-1) types)
+- quasi repdigit ABB..BBC ((b-1)\*(b-2)\*(b-2) types)
+  - C=0 means in factors to b\*(near repdigit ABB..BB)
+- palindrome AA..AABAA..AA ((b-1)\*(b-1) types)
+
 # ideas from factordb.com
 
 - cullen numbers (n\*2^n+1)

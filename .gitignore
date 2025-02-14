@@ -10,5 +10,6 @@ __pycache__
 /prefactor/tdiv
 /prefactor/prho
 /prefactor/ecm
+/prefactor/tmp
 /numbers/tmp
 /scripts/tmp

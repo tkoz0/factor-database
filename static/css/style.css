@@ -253,6 +253,16 @@ body {
     border-bottom: 1px solid black;
 }
 
+.num_val {
+    word-break: break-all;
+    word-wrap: break-word;
+}
+
+.num_cof {
+    word-break: break-all;
+    word-wrap: break-word;
+}
+
 /* other classes */
 
 .hidden {

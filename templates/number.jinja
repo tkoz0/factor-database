@@ -18,7 +18,7 @@
     <tr>
         <td>Value</td>
         <td>
-            <span class="number">{{number_value}}</span>
+            <span class="number num_val">{{number_value}}</span>
             <button onclick="navigator.clipboard.writeText('{{number_value}}')">copy</button>
         </td>
     </tr>
@@ -38,7 +38,7 @@
         <td>Cofactor</td>
 {% if cofactor_id %}
         <td>
-            <a href="/factor/{{cofactor_id}}">{{cofactor_value}}</a>
+            <a class="num_cof" href="/factor/{{cofactor_id}}">{{cofactor_value}}</a>
             ({{cofactor_status}})
         </td>
 {% else %}
