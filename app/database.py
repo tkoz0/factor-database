@@ -1736,6 +1736,30 @@ def findCategoriesWithNumber(i:int) \
 
         return ret
 
+def findCategoryIndexRange(path:tuple[str,...]|str|int) -> None|tuple[int,int]:
+    '''
+    find the min and max of the indexes in a category
+    '''
+    if isinstance(path,str):
+        path = _str_to_path(path)
+
+    with _dbcon() as con:
+        if isinstance(path,tuple):
+            row = _getcatp(path,con)
+            if row is None:
+                return None
+            path = row[-1].id
+
+        cur = con.execute("select min(index),max(index) from sequences "
+                          "where cat_id = %s;",(path,))
+        row = cur.fetchone()
+        if row is not None:
+            cmin,cmax = row
+            if isinstance(cmin,int) and isinstance(cmax,int):
+                return (cmin,cmax)
+            else:
+                return None
+
 #===============================================================================
 # user accounts
 #===============================================================================

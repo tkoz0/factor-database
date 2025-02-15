@@ -89,6 +89,7 @@ def getTableInfo(path_str:str):
             )
             for index,expr,row_or_value,factors in tabledata
         ]
+        ret['index_range'] = app.database.findCategoryIndexRange(cat_row.id)
 
     else:
         child_rows = app.database.listCategory(cat_row.id)
@@ -96,6 +97,7 @@ def getTableInfo(path_str:str):
         child_titles = []
         child_links = []
         child_is_table = []
+        child_index_ranges = []
         for child_row in child_rows:
             child_titles.append(child_row.name if child_row.title == ''
                                 else child_row.title)
@@ -104,7 +106,10 @@ def getTableInfo(path_str:str):
             else:
                 child_links.append(f'/tables/{path_str}/{child_row.name}')
             child_is_table.append(child_row.is_table)
-        ret['children'] = zip(child_titles,child_links,child_is_table)
+            child_index_ranges.append(
+                app.database.findCategoryIndexRange(child_row.id))
+        ret['children'] = zip(child_titles,child_links,
+                              child_is_table,child_index_ranges)
         ret['children_len'] = len(child_rows)
         children_names = [cr.name for cr in child_rows]
         ret['children_names'] = children_names
