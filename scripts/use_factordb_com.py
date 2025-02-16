@@ -35,8 +35,6 @@ for i in itqdm:
             break
         except Exception as e:
             itqdm.write(f'exception {type(e)} {str(e)}')
-            if isinstance(e,db.FDBException):
-                exit(1)
             delay = min(delay*2,MAX_DELAY)
             itqdm.write(f'waiting {delay} seconds')
             sleep(delay)
