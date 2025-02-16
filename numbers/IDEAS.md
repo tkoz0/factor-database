@@ -1,0 +1,168 @@
+# ideas from thought and searching
+
+- mersenne 2^p-1 (p prime)
+- fermat - grows too quickly
+- padovan, narayana, perrin
+- generalizations of fibonacci and similar sequences
+- integer powers plus/minus constant
+- factorials plus/minus constant
+- primorials plus/minus constant
+- double/triple/.. factorials plus/minus constant
+- compositorials plus/minus constant
+- factorial base repdigit
+  - 1! + 2! + ... + n!
+- integer parts of pi/e/sqrt(2)/.. times base^power
+  - pi: 3, 31, 314, 3141, 31415, 314159, ...
+  - e: 2, 27, 271, 2718, 27182, 271828, ...
+  - see y-cruncher ideas for more
+  - consider both floor and ceiling
+- numerator/denominator of convergents to irrationals
+- dynamic programming recurrence sequences
+- combinatorics formulas
+- pell sequences
+- n^n plus/minus constant
+- 1^1 + 2^2 + 3^3 + ... + n^n
+- 2^2 + 3^3 + 5^5 + ... + p^p
+- x^n plus/minus y^n
+- repunit with negative base (b^n-1)/(b-1) (use absolute value)
+- generalized mersenne numbers (a^n-b^n)/(a-b) with gcd(a,b)=1
+- wagstaff numbers (2^p+1)/3 (p odd prime)
+- generalized wagstaff (b^n+1)/(b+1) (possibly with negative b)
+- proth numbers (k\*2^n+1)
+- solinas numbers (f(2^k), f is low degree poly with small integer coeffs)
+- solinas numbers generalized to other bases
+- another mersenne number generalization (a^n-b^n)/(a-b) (gcd(a,b)=1)
+- number of derangements
+- number of integer partitions
+- odd integer partitions (each partition is odd)
+- even integer partitions (might be interesting but can all be divided by 2)
+- distinct integer partitions (each partition size is unique)
+- bell numbers (set partitions)
+- catalan numbers (are these trivially factorable)
+- motzkin numbers (ways of drawing lines between points on circle)
+- telephone/involution numbers (ways to make graph matchings)
+- schroder numbers (count 2d lattice paths with diagonals allowed)
+- schroder-hipparchus number (counting plane trees)
+- tribonacci numbers
+- tetranacci numbers
+- other (P,Q) fibonacci/lucas sequences
+- determinants of significant matrices
+- stirling numbers (are these trivial to factor)
+- lah numbers (related to stirling)
+- fuss-catalan number
+- pseudoprimes (if any types grow fast enough)
+- lychrel number sequences
+- sums of fibonacci/lucas/other numbers f(0)+f(1)+f(2)+...+f(n)
+- fibonacci base ideas (zeckendorf representation)
+- extensions of sequences to negative indexes if they give interesting results
+- constants for the random fibonacci sequence
+- pseudoprimes if there are any types that grow quickly enough
+- fibonacci/lucas plus/minus small constant (and other important sequences)
+- williams numbers (b-1)\*b^n-1 for base b >= 2 (maybe generalize to b <= -2)
+- thabit numbers (b+1)\*b^n-1 for base b >= 2 (maybe generalize to b <= -2)
+- both williams and thabit numbers with +1 instead of -1
+- pierpont numbers 2^u*3^v+1, second kind with -1 instead of +1
+
+# ideas from oeis.org
+
+- A000055 number of trees with n unlabeled nodes
+- A000088 number of simple graphs on n unlabeled nodes
+- A000664 number of graphs with n edges
+- A001187 number of connected labeled graphs with n nodes
+- A001349 number of simple connected graphs on n unlabeled nodes
+- A002494 number of n node graphs without isolated nodes
+
+# ideas from stdkmd.net
+
+- repeated digit expressed as AA..AA
+- near repdigit
+  - AA..AAB
+  - ABB..BB
+  - AA..AABA
+  - ABAA..AA
+- near repdigit related
+  - plateau ABB..BBA, B > A
+  - depression ABB..BBA, B < A
+  - quasi ABB..BBC (A != C)
+  - palindrome AA..AABAA..AA
+- cyclotomic numbers
+
+repdigit types in base b, note that some factor trivially to another type
+- repdigit AA..AA (b-1 types)
+- near repdigit AA..AAB ((b-1)\*(b-2) types)
+  - B=0 means it factors to b\*(repdigit AA..AA)
+- near repdigit ABB..BB ((b-1)\*(b-2) types)
+  - B=0 makes the entire number trivially factorable
+- near repdigit AA..AABA ((b-1)\*(b-1) types)
+- near repdigit ABAA..AA ((b-1)\*(b-1) types)
+- plateau/depression ABB..BBA ((b-1)\*(b-1) types)
+- quasi repdigit ABB..BBC ((b-1)\*(b-2)\*(b-2) types)
+  - C=0 means in factors to b\*(near repdigit ABB..BB)
+- palindrome AA..AABAA..AA ((b-1)\*(b-1) types)
+
+# ideas from factordb.com
+
+- cullen numbers (n\*2^n+1)
+- woodall numbers (n\*2^n-1)
+- cunningham numbers (b^n+1 and b^n-1)
+- near-cunningham (k\*b^n+d and k\*b^n-d)
+- generalized hyper-cullen (x^y\*y^x+1)
+- generalized hyper-woodall (x^y\*y^x-1)
+- near-cullen ((n-1)\*2^n+1 and (n+1)\*2^n+1)
+- near-woodall ((n-1)\*2^n-1 and (n+1)\*2^n-1)
+- n! - n - 1
+- n! + n + 1
+- x^y + y^x
+- x^y - y^x
+
+# ideas from y-cruncher
+
+- golden ratio
+- square/cube/4th/... roots of integers
+- log(2), log(3), ...
+- zeta(2), zeta(3), ...
+- catalan constant
+- euler-mascheroni constant
+- plastic ratio
+- bronze ratio
+- silver ratio
+- metallic means
+- supergolden ratio
+- sin(1), cos(1)
+- trigonometric functions and inverses
+- gamma function
+- dirichlet function
+- erf(1)
+- lemniscate
+- unnormalized fresnel
+- weierstrass constant
+- i^i (imaginary unit)
+- euler-gompertz constant
+- heeger numbers
+- khinchin-levy constant
+- levy constant
+- log(pi)
+- log10(2)
+- psi constant
+- plastic number
+- ramanujan number
+- sierpinski constant
+- universal parabolic constant
+- airy function
+- constants for differential equations
+- constants for various integrals
+- other powers of pi
+- other powers of e
+- e^(-e)
+- e^(1/e)
+- e^e
+- e^pi
+- pi^pi
+- pi^pi^pi
+- pi^e
+
+# ideas used for production database
+
+- fibonacci numbers
+- lucas numbers
+- repunits (positive bases)
