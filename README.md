@@ -44,26 +44,10 @@ For development
 
 # todo
 
-# later todos
-
-- look at time limits for quart routes to avoid an infinite loop bug
-- look at query planner for various queries in database.py
-- support compression for submission data
-- make factor page show numbers and factors containing it as a factor
-- make number page link all factors including old ones
-- find a better way to update factors with few operations
-- function for removing small factors (64 bit) from the database
-- functions for cleaning up other database data
-  - remove unreferenced primes/numbers
-- setup more proper testing (quart: app.test_request_context)
+- caching for pages that take a lot of querties, particularly the factor tables
 - setup a python virtual environment as part of the repo
   - requires at least python3.12
   - include a requirements.txt
-- setup database triggers if they make sense anywhere
-- organize sample databases into a few different options
-  - small (possibly with no numbers)
-  - large (with similarities to production)
-  - add some more complete factorization data from factordb.com
 - implement an api
   - some possible routes below
   - choose get/post where appropriate
@@ -71,6 +55,26 @@ For development
   - /api/get_factor (get, by id or value)
   - /api/submit_factors (post)
   - /api/list_category (get)
+- functions for cleaning up other database data
+  - remove unreferenced primes/numbers
+- make number page link all factors including old ones
+- add account button to close all other sessions
+- attempt to submit new factors to factordb.com
+
+# later todos
+
+- look at time limits for quart routes to avoid an infinite loop bug
+- look at query planner for various queries in database.py
+- support compression for submission data
+- make factor page show numbers and factors containing it as a factor
+- find a better way to update factors with few operations
+- function for removing small factors (64 bit) from the database
+- setup more proper testing (quart: app.test_request_context)
+- setup database triggers if they make sense anywhere
+- organize sample databases into a few different options
+  - small (possibly with no numbers)
+  - large (with similarities to production)
+  - add some more complete factorization data from factordb.com
 
 # feature goals
 
@@ -82,7 +86,6 @@ For development
 - ecm progress
   - estimate smallest factor size
 - factoring time estimates
-- database caching
 - JSON API
 
 # misc goals
