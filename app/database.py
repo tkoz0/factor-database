@@ -1155,7 +1155,8 @@ def factorCategoryIndexWithFactorDB(path:tuple[str,...]|str, index:int):
         row = cur.fetchone()
         if row is None:
             raise FDBException('no number with that index')
-        factorNumberByIdWithFactorDB(row[0])
+        if row[0] is not None: # none for small exceptions
+            factorNumberByIdWithFactorDB(row[0])
 
 def _value_size_param(bitlen:int|None) -> tuple[int,bytes]:
     # return byte length and largest first byte value
