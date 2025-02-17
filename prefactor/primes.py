@@ -55,6 +55,7 @@ def _cache_expand():
 def nthPrime(n:int) -> int:
     ''' nth prime (1-indexed starting with 2) '''
     global _cache_primes
+    assert n > 0
     while n-1 >= len(_cache_primes):
         _cache_expand()
     return _cache_primes[n-1]
@@ -62,6 +63,7 @@ def nthPrime(n:int) -> int:
 def nthComposite(n:int) -> int:
     ''' nth composite (1-indexed starting with 4) '''
     global _cache_composites
+    assert n > 0
     while n-1 >= len(_cache_composites):
         _cache_expand()
     return _cache_composites[n-1]

@@ -8,6 +8,12 @@ This is to limit database size by storing only significant nontrivial results.
   - polynomials grow very slowly so factoring many is trivial
   - storing a large number of smaller easy to factor terms is not the purpose
   - subexponential growth is ok if the number lengths increase quickly
+- can be extended infinitely
+  - finite sequences often stop at relatively small values
+  - infinite sequences can expand with computing power
+- reasonably easy to compute
+  - some interesting numbers could be things like graph enumeration problems
+  - for many difficult problems, it is hard to get enough interesting terms
 - not trivially factorable
   - some terms may be easy to factor but many should not be, for example
     - repunits of a highly composite power have many smaller factors

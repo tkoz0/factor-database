@@ -6,6 +6,8 @@ from typing import Callable
 
 from primes import nthPrime,nthComposite
 
+from bases import fromBase
+
 # returns a constant linear recursive sequence function (without cache)
 # init = first d terms (f(0),f(1),...,f(d-1))
 # recur = (c_d,c_{d-1},...,c_1) meaning
@@ -77,7 +79,7 @@ def _make_lucas_v(p:int,q:int) -> Callable[[int],int]:
 _cache_lu: dict[tuple[int,int],Callable[[int],int]] = dict()
 _cache_lv: dict[tuple[int,int],Callable[[int],int]] = dict()
 
-def lucas_u(p:int,q:int,n:int) -> int:
+def lucasU(p:int,q:int,n:int) -> int:
     '''
     generic lucas U sequence function with result caching
     '''
@@ -86,7 +88,7 @@ def lucas_u(p:int,q:int,n:int) -> int:
         _cache_lu[(p,q)] = _make_lucas_u(p,q)
     return _cache_lu[(p,q)](n)
 
-def lucas_v(p:int,q:int,n:int) -> int:
+def lucasV(p:int,q:int,n:int) -> int:
     '''
     generic lucas V sequence function with result caching
     '''
@@ -95,16 +97,30 @@ def lucas_v(p:int,q:int,n:int) -> int:
         _cache_lv[(p,q)] = _make_lucas_v(p,q)
     return _cache_lv[(p,q)](n)
 
+_cache_f: list[int] = [1]
+
 def factorial(n:int) -> int:
+    global _cache_f
     assert n >= 0
-    if n == 0:
-        return 1
-    ret = 1
-    for i in range(1,n+1):
-        ret *= i
-    return ret
+    while n >= len(_cache_f):
+        _cache_f.append(_cache_f[-1]*len(_cache_f))
+    return _cache_f[n]
+
+_cache_m: dict[int,list[int]] = dict()
+
+def multiFactorial(f:int,n:int) -> int:
+    global _cache_m
+    assert f >= 1
+    assert n >= 0
+    if f not in _cache_m:
+        _cache_m[f] = [1] + list(range(1,f))
+    mf = _cache_m[f]
+    while n >= len(mf):
+        mf.append(mf[-f]*len(mf))
+    return mf[n]
 
 def primorial(n:int) -> int:
+    #TODO cache
     assert n > 0
     ret = 1
     i = 1
@@ -114,6 +130,7 @@ def primorial(n:int) -> int:
     return ret
 
 def compositorial(n:int) -> int:
+    #TODO cache
     assert n > 0
     ret = 1
     i = 1
@@ -122,11 +139,58 @@ def compositorial(n:int) -> int:
         i += 1
     return ret
 
+def mersenne(n:int) -> int:
+    assert n > 0
+    return 2**nthPrime(n)-1
+
+def fermat(n:int) -> int:
+    assert n >= 0
+    return 2**2**n+1
+
+def gfermat1(a:int,n:int) -> int:
+    assert a >= 2
+    assert n >= 0
+    return (a**2**n+1) // (1 if a % 2 == 0 else 2)
+    # division for all even sequences as on wikipedia
+
+def _gcd2(a:int,b:int) -> int:
+    a = abs(a)
+    b = abs(b)
+    while b != 0:
+        a,b = b,a%b
+    return a
+
+def gfermat2(a:int,b:int,n:int) -> int:
+    assert a > b > 0
+    assert n >= 0
+    assert _gcd2(a,b) == 1
+    return (a**2**n+b**2**n) // (2 if (a+b) % 2 == 0 else 1)
+    # division for all even seqquences as on wikipedia
+    # requires gcd(a,b)=1 as on wikipedia
+
 def repunit(base:int,index:int) -> int:
     assert base >= 2
     assert index >= 0
     ret = (base**index - 1) // (base-1)
     return ret
+
+_digits = '0123456789abcdefghijklmnopqrstuvwxyz'
+
+def nearRepdigit(base:int,pattern:str,index:int) -> int:
+    assert 2 <= base <= 36
+    assert index >= 0
+    digits: list[int] = []
+    i = 0
+    while i < len(pattern):
+        digit = _digits.find(pattern[i])
+        assert digit >= 0
+        if i+1 < len(pattern) and pattern[i+1] == '*':
+            digits += [digit]*index
+            i += 2
+        else:
+            digits.append(digit)
+            i += 1
+    return fromBase(base,digits)
 
 if __name__ == '__main__':
     # tests
@@ -152,19 +216,19 @@ if __name__ == '__main__':
     assert [pell_lucas(n) for n in range(11)] \
         == [2,2,6,14,34,82,198,478,1154,2786,6726]
 
-    assert all(lucas_u(1,-1,n) == fibonacci(n) for n in range(100))
-    assert all(lucas_v(1,-1,n) == lucas(n) for n in range(100))
-    assert all(lucas_u(2,-1,n) == pell(n) for n in range(100))
-    assert all(lucas_v(2,-1,n) == pell_lucas(n) for n in range(100))
-    assert all(lucas_u(1,-2,n) == jacobsthal(n) for n in range(100))
-    assert all(lucas_v(1,-2,n) == jacobsthal_lucas(n) for n in range(100))
-    assert all(lucas_u(3,2,n) == 2**n-1 for n in range(100))
-    assert all(lucas_v(3,2,n) == 2**n+1 for n in range(100))
+    assert all(lucasU(1,-1,n) == fibonacci(n) for n in range(100))
+    assert all(lucasV(1,-1,n) == lucas(n) for n in range(100))
+    assert all(lucasU(2,-1,n) == pell(n) for n in range(100))
+    assert all(lucasV(2,-1,n) == pell_lucas(n) for n in range(100))
+    assert all(lucasU(1,-2,n) == jacobsthal(n) for n in range(100))
+    assert all(lucasV(1,-2,n) == jacobsthal_lucas(n) for n in range(100))
+    assert all(lucasU(3,2,n) == 2**n-1 for n in range(100))
+    assert all(lucasV(3,2,n) == 2**n+1 for n in range(100))
 
     # repunit in a few bases
     for x in range(2,37):
-        assert all(lucas_u(x+1,x,n) == (x**n-1)//(x-1) for n in range(100))
-        assert all(lucas_v(x+1,x,n) == x**n+1 for n in range(100))
+        assert all(lucasU(x+1,x,n) == (x**n-1)//(x-1) for n in range(100))
+        assert all(lucasV(x+1,x,n) == x**n+1 for n in range(100))
 
     assert [factorial(n) for n in range(10)] \
         == [1,1,2,6,24,120,720,5040,40320,362880]
@@ -176,3 +240,21 @@ if __name__ == '__main__':
         == [0,1,3,7,15,31,63,127,255,511]
     assert [repunit(10,n) for n in range(10)] \
         == [0,1,11,111,1111,11111,111111,1111111,11111111,111111111]
+    assert [nearRepdigit(10,'12*3',n) for n in range(10)] \
+        == [13,123,1223,12223,122223,1222223,12222223,122222223,1222222223,12222222223]
+    assert [nearRepdigit(10,'9*89*',n) for n in range(5)] \
+        == [8,989,99899,9998999,999989999]
+
+    assert [mersenne(n) for n in range(1,10)] \
+        == [3,7,31,127,2047,8191,131071,524287,8388607]
+
+    assert [multiFactorial(2,n) for n in range(10)] \
+        == [1,1,2,3,8,15,48,105,384,945]
+    assert [multiFactorial(3,n) for n in range(10)] \
+        == [1,1,2,3,4,10,18,28,80,162]
+
+    assert [gfermat1(2,n) for n in range(5)] == [3,5,17,257,65537]
+    assert [gfermat1(3,n) for n in range(5)] == [2,5,41,3281,21523361]
+    assert [gfermat2(2,1,n) for n in range(5)] == [3,5,17,257,65537]
+    assert [gfermat2(3,1,n) for n in range(5)] == [2,5,41,3281,21523361]
+    assert [gfermat2(3,2,n) for n in range(5)] == [5,13,97,6817,43112257]
