@@ -7,6 +7,7 @@ consider the very small possibility that this finds a bpsw pseudoprime
 '''
 
 import sys
+from time import time
 from tqdm import tqdm
 
 import cypari2
@@ -15,5 +16,7 @@ pari.allocatemem(0,2000000000)
 
 for line in tqdm(sys.stdin.read().splitlines()):
     i,v = map(int,line.split())
-    tqdm.write(f'factor id {i} ({len(str(v))} digits)')
+    tqdm.write(f'factor id {i} ({len(str(v))} digits / {v.bit_length()} bits)')
+    t = time()
     assert pari.isprime(v)
+    tqdm.write(f'proven prime in {time()-t:.3f} sec')

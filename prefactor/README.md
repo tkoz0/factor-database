@@ -27,7 +27,7 @@ were chosen.
 3. Pipe the JSONL data to `dbinsert.py` to add numbers to database
 
 Example for `dbfactor.py` (see `-h` for all options)
-- `dbfactor.py -c 'sequences.fibonacci({})' -e '\(F_{{}}\)' -s 0 -f 100 -p cat1/cat2/table`
+- `dbfactor.py -c 'fibonacci({})' -e '\(F_{{}}\)' -s 0 -f 100 -p cat1/cat2/table`
 - `-c` is the expression for calculating terms (uses python `eval`)
   - supports the `bases`, `primes`, and `sequences` modules included here
 - `-e` is the displayed expression (this example uses mathjax syntax)
