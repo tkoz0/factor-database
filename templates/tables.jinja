@@ -95,7 +95,7 @@ count_1.addEventListener('input',() => nav_calc_1());
 
 {# page nav #}
 <div class="table_page_nav">
-    Index range: {{start}} &ndash; {{start+count-1}}
+    <p>Index range: {{start}} &ndash; {{start+count-1}}
 {% if start > 0 %}
     <a href="/tables/{{path}}?start={{start-count}}&count={{count}}">&lt;&lt; prev</a>
 {% endif %}
@@ -104,6 +104,7 @@ count_1.addEventListener('input',() => nav_calc_1());
 {% else %}
     <a href="/tables/{{path}}">return</a>
 {% endif %}
+    </p>
 <form method="get">
     <input id="nav_start_2" type="number" min="0" max="1000000" name="start" placeholder="start" value="{{start}}" />
     <input id="nav_count_2" type="number" min="1" max="{{max_count}}" name="count" placeholder="count" value="{{count}}" />
