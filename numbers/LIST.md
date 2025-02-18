@@ -5,8 +5,7 @@
 - Lucas
   - $ L_0=2, L_1=1, L_n=L_{n-1}+L_{n-2} $
 - Repunits
-  - bases $ 2 \leq b \leq 20 $
-  - $n$-th term is $ (b^n-1)/(b-1) $ where $ n \geq 0 $
+  - bases $ 2 \leq b \leq 20 $, terms $ (b^n-1)/(b-1) $ where $ n \geq 0 $
 
 # fdb.tkoz.me production plan
 
