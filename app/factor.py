@@ -120,9 +120,9 @@ def insertFactors(i:int,u:None|app.database.UserRow,name:str,
 
     user_id = None if u is None else u.id
     ip = quart.request.remote_addr
-    app.database.insertFactorForm(user_id,name,factors,details,ip,i)
 
     if count_found > 0:
+        app.database.insertFactorForm(user_id,name,factors,details,ip,i)
         return ('Factorization successful.',200,True)
     else:
         return ('Did not find any new factors.',400,False)

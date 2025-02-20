@@ -60,6 +60,9 @@ For development
 - make number page link all factors including old ones
 - add account button to close all other sessions
 - attempt to submit new factors to factordb.com
+- icons for category/table instead of the text in parenthesis
+  - folder for categories
+  - some kind of list/table for tables
 
 # later todos
 
