@@ -5,7 +5,6 @@ perform the prefactoring and generate data used for database insertion
 modify as needed for various sequences, below is an example
 '''
 
-import argparse
 import json
 import sys
 
@@ -14,61 +13,71 @@ import gmpy2
 from factoring import prefactor_runner
 from expreval import expreval
 
+import bases
+import primes
+import sequences
+
+sys.set_int_max_str_digits(0)
+
 # factoring parameters
 lim_tdiv = 10**5
 lim_prho = 10**5
 ecm_b1_curves = ((2000,2000),(10000,1000),(50000,500))
+ecm_threads = 0
 
-parser = argparse.ArgumentParser()
-parser.add_argument('-c','--calc',help='term expression for calculation (use {} for index)',type=str,required=True)
-parser.add_argument('-e','--expr',help='term expression for database (use {} for index)',type=str,required=True)
-parser.add_argument('-s','--start',help='beginning index',type=int,required=True)
-parser.add_argument('-f','--finish',help='ending index (1 past end)',type=int,required=True)
-parser.add_argument('-p','--path',help='table path',type=str,required=True)
-parser.add_argument('-d','--dry-run',help='show what script will do',action='store_true')
-parser.add_argument('-v','--verbose',help='extra output on stderr',action='store_true')
-parser.add_argument('-l','--length',help='adjust int to str length limit',type=int)
-parser.add_argument('-t','--threads',help='number of threads for ecm',type=int,default=0)
-args = parser.parse_args()
+# ==============================================================================
+# modify the following as necessary
+# (probably just the cmdline args and the 3 lines below a TODO)
+# keep the same output format (jsonl)
+# below is an example for repunits
+# ==============================================================================
 
-if args.length:
-    sys.set_int_max_str_digits(args.length)
+index_beg = int(sys.argv[1])
+index_end = int(sys.argv[2])
 
-#print(f'args = {args}')
+base = int(sys.argv[3])
+assert 2 <= base <= 36
 
-for n in range(args.start,args.finish):
-    # eval is unsafe to use so this should only be used properly by admin
+def expr(base:int,n:int,/) -> str:
+    # repunit expression
+    assert 2 <= base <= 36 and n >= 0
+    return f'\\[2^{{{n}}}-1\\]' if base == 2 \
+        else f'\\[{{{base}^{{{n}}}-1\\over{base-1}}}\\]'
+
+def path(base:int,/) -> str:
+    # repunit table path
+    assert 2 <= base <= 36
+    return f'repunit/{base}'
+
+for n in range(index_beg,index_end):
+    sys.stderr.write(f'\n\033[94mFACTORING INDEX {n}\033[0m\n')
+    # TODO adjust computation of number value
+    v = sequences.repunit(base,n)
     output = {
         'index': n,
-        'value': expreval(args.calc,n),
-        'expr': args.expr.replace('{}',str(n))
+        'value': v,
+        # TODO adjust expression to display on factor tables
+        'expr': expr(base,n),
+        # TODO adjust table path
+        'path': path(base),
+        'factors': None if v < 2
+            else prefactor_runner(v,
+                                  lim_tdiv=lim_tdiv,
+                                  lim_prho=lim_prho,
+                                  ecm_b1_curves=ecm_b1_curves,
+                                  ecm_threads=ecm_threads,
+                                  progress_stream=sys.stderr)
     }
-    assert isinstance(output['value'],int)
-    if not args.dry_run:
-        output['path'] = args.path
-        progress_stream = None
-        if output['value'] > 1:
-            if args.verbose:
-                progress_stream = sys.stderr
-                sys.stderr.write(f'\n\033[94mFACTORING INDEX {n}\033[0m\n')
-                sys.stderr.write(f'value = {output['value']}\n')
-            output['factors'] = prefactor_runner(output['value'],
-                                                 lim_tdiv=lim_tdiv,
-                                                 lim_prho=lim_prho,
-                                                 ecm_b1_curves=ecm_b1_curves,
-                                                 ecm_threads=args.threads,
-                                                 progress_stream=progress_stream)
-            if args.verbose:
-                sys.stderr.write(f'\033[32mCOMPLETED INDEX {n}\033[0m\n')
-            # check again
-            cof = output['value']
-            for f,p,_ in output['factors']:
-                assert gmpy2.is_prime(f) == p # type:ignore
-                assert 1 < f <= cof
-                assert cof % f == 0
-                cof //= f
-            assert cof == 1
-        else:
-            output['factors'] = None
+    sys.stderr.write(f'\033[32mCOMPLETED INDEX {n}\033[0m\n')
+
+    # check result and output
+    if v >= 2:
+        cof = v
+        for f,p,_ in output['factors']:
+            assert gmpy2.is_prime(f) == p # type:ignore
+            assert 1 < f <= cof
+            assert cof % f == 0
+            cof //= f
+        assert cof == 1
     print(json.dumps(output,separators=(',',':')))
     sys.stdout.flush()
