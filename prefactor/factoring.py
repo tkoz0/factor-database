@@ -25,10 +25,25 @@ import re
 import select
 import subprocess
 from time import time,sleep
-from tqdm import tqdm
 import sys
 
 import gmpy2
+
+# =======
+# utility
+# =======
+
+def prp(n:int,/) -> bool:
+    return gmpy2.is_prime(n,50) # type:ignore
+
+def shortnum(n:int,/) -> str:
+    s = str(n)
+    if len(s) < 10:
+        return s
+    elif len(s) <= 40:
+        return f'{s}<{len(s)}>'
+    else:
+        return f'{s[:10]}..{s[-10:]}<{len(s)}>'
 
 # ==========
 # parameters
@@ -132,10 +147,7 @@ def ecm_runner(n:int,
     completed_curves = 0
     threads_running = threads
     if progress_stream is not None:
-        progress_tqdm = tqdm(range(curves),file=progress_stream)
-        progress_iter = iter(progress_tqdm)
-    else:
-        progress_iter = iter(range(curves))
+        progress_stream.write(f'running (0/{curves}) (0.000sec)')
     while completed_curves < curves:
         any_change = False
         done = False
@@ -157,11 +169,12 @@ def ecm_runner(n:int,
             if output:
                 output[i].append(line)
             if debug:
-                progress_tqdm.write(line,end='')
+                sys.stderr.write(f'{line}\n')
 
             if line.startswith('Run'): # starting new curve
                 completed_curves += 1
-                next(progress_iter)
+                if progress_stream is not None:
+                    progress_stream.write(f'\rrunning ({completed_curves} / {curves}) ({time()-t_start:.3f} sec)')
                 if completed_curves + threads_running > curves:
                     procs[i].terminate()
                     threads_running -= 1
@@ -185,8 +198,6 @@ def ecm_runner(n:int,
                 last_stage[i] = 2
 
             elif line.startswith('****'): # factored
-                if progress_stream is not None:
-                    progress_tqdm.close()
 
                 for line in procs[i].stdout: # type:ignore
                     if line == '\n' or line.startswith('APR'):
@@ -209,7 +220,6 @@ def ecm_runner(n:int,
                         found_index = i
 
                 completed_curves += 1
-                next(progress_iter)
                 if isinstance(found_index,int):
                     done = True
                     break
@@ -223,35 +233,28 @@ def ecm_runner(n:int,
     for proc in procs:
         proc.terminate()
 
-    try:
-        next(progress_iter)
-    except:
-        pass
-
     t_finish = time()
     if progress_stream is not None:
-        progress_stream.write(f'completed {completed_curves} curves in {t_finish-t_start:.3f} sec\n')
+        progress_stream.write(f'\rcompleted {completed_curves} curves in {t_finish-t_start:.3f} sec\n')
 
     if found_index is None:
         return (0,0,completed_curves)
 
     assert found_factor is not None
     assert found_cofactor is not None
+    fflen = len(str(found_factor[0]))
 
     i = found_index
     if progress_stream is not None:
         progress_stream.write(f'stage={last_stage[i]},b1={last_b1[i]},b2={last_b2[i]},poly={last_poly[i]},sigma={last_sigma[i]}\n')
-        progress_stream.write(f'factor {found_factor}\n')
-        progress_stream.write(f'cofactor {found_cofactor}\n')
+        progress_stream.write(f'factor {found_factor[0]}<{fflen}> ({('composite','prime')[found_factor[1]]})\n')
+        progress_stream.write(f'cofactor {shortnum(found_cofactor[0])} ({('composite','prime')[found_cofactor[1]]})\n')
 
     return (found_factor[0],found_cofactor[0],completed_curves)
 
 # ============
 # prefactoring
 # ============
-
-def prp(n:int) -> bool:
-    return gmpy2.is_prime(n,50) # type:ignore
 
 def prefactor_runner(n:int,
                      lim_tdiv:int=0,
@@ -272,7 +275,7 @@ def prefactor_runner(n:int,
     if lim_tdiv > 0:
 
         if progress_stream:
-            progress_stream.write(f'running tdiv on {cofactor}\n')
+            progress_stream.write(f'running tdiv on {shortnum(cofactor)}\n')
         t = time()
         proc_tdiv = subprocess.Popen(
             [path_tdiv,str(lim_tdiv),str(cofactor)],
@@ -290,7 +293,7 @@ def prefactor_runner(n:int,
             cofactor //= f
         if progress_stream:
             if len(factors):
-                progress_stream.write(f'found factors {','.join(str(f) for f,_,_ in factors)} with trial division ({time()-t:.3f} sec)\n')
+                progress_stream.write(f'>>> found factors {','.join(str(f) for f,_,_ in factors)} with tdiv ({time()-t:.3f} sec)\n')
             else:
                 progress_stream.write(f'no factor found ({time()-t:.3f} sec)\n')
 
@@ -312,7 +315,7 @@ def prefactor_runner(n:int,
             x0 = random.randint(2,9999)
             b = random.randint(1,9999)
             if progress_stream:
-                progress_stream.write(f'running prho on {cofactor}\n')
+                progress_stream.write(f'running prho on {shortnum(cofactor)}\n')
             t = time()
             proc_prho = subprocess.Popen(
                 [path_prho,str(lim_prho),str(x0),str(b),str(cofactor)],
@@ -330,10 +333,11 @@ def prefactor_runner(n:int,
                 continue
 
             f = int(line)
+            lf = len(str(f))
             assert 1 < f < cofactor
             assert cofactor % f == 0
             if progress_stream:
-                progress_stream.write(f'found factor {f} with prho ({time()-t:.3f} sec)\n')
+                progress_stream.write(f'>>> found factor {f}<{lf}> with prho ({time()-t:.3f} sec)\n')
             cofactors_attempt.append(f)
             cofactors_attempt.append(cofactor//f)
 
@@ -343,6 +347,7 @@ def prefactor_runner(n:int,
     while len(cofactors_attempt) > 0:
         # get a cofactor, nothing to do if it is prime
         cofactor = cofactors_attempt.pop()
+        lcof = len(str(cofactor))
         if prp(cofactor):
             factors.append((cofactor,True,'ecm'))
             continue
@@ -352,7 +357,7 @@ def prefactor_runner(n:int,
         for b1,curves in ecm_b1_curves:
             t = time()
             if progress_stream:
-                progress_stream.write(f'running ecm with b1={b1} for {curves} curves on {cofactor}\n')
+                progress_stream.write(f'running ecm (b1={b1},runs={curves}) on {shortnum(cofactor)}\n')
             f1,f2,num_curves = ecm_runner(cofactor,curves,b1,threads=ecm_threads,progress_stream=progress_stream)
             if f1 != 0:
                 break
@@ -372,7 +377,7 @@ def prefactor_runner(n:int,
         assert cofactor % f2 == 0
         assert f1 * f2 == cofactor
         if progress_stream:
-            progress_stream.write(f'found factor {f1} with ecm using b1={b1} and {num_curves} curves ({time()-t:.3f} sec)\n')
+            progress_stream.write(f'>>> found factor {f1} with ecm ({time()-t:.3f} sec)\n')
         cofactors_attempt.append(f1)
         cofactors_attempt.append(f2)
 
