@@ -9,8 +9,11 @@
 - primorials plus/minus constant
 - double/triple/.. factorials plus/minus constant
 - compositorials plus/minus constant
-- factorial base repdigit
-  - 1! + 2! + ... + n!
+- factorial base repdigit (1! + 2! + ... + n!)
+- factorial base maximum (1\*1! + 2\*2! + ... + n\*n!)
+- double/triple factorial sums
+  - 1!! + 2!! + ... + n!!
+  - 1!!! + 2!!! + ... + n!!!
 - integer parts of pi/e/sqrt(2)/.. times base^power
   - pi: 3, 31, 314, 3141, 31415, 314159, ...
   - e: 2, 27, 271, 2718, 27182, 271828, ...
@@ -63,15 +66,6 @@
 - both williams and thabit numbers with +1 instead of -1
 - pierpont numbers 2^u*3^v+1, second kind with -1 instead of +1
 
-# ideas from oeis.org
-
-- A000055 number of trees with n unlabeled nodes
-- A000088 number of simple graphs on n unlabeled nodes
-- A000664 number of graphs with n edges
-- A001187 number of connected labeled graphs with n nodes
-- A001349 number of simple connected graphs on n unlabeled nodes
-- A002494 number of n node graphs without isolated nodes
-
 # ideas from stdkmd.net
 
 - repeated digit expressed as AA..AA
@@ -100,20 +94,35 @@ repdigit types in base b, note that some factor trivially to another type
   - C=0 means in factors to b\*(near repdigit ABB..BB)
 - palindrome AA..AABAA..AA ((b-1)\*(b-1) types)
 
+method of constructing
+- generate formulas for all near-repdigit type/forms
+- factor as much from the terms as possible
+- remove factors
+
 # ideas from factordb.com
 
-- cullen numbers (n\*2^n+1)
-- woodall numbers (n\*2^n-1)
-- cunningham numbers (b^n+1 and b^n-1)
-- near-cunningham (k\*b^n+d and k\*b^n-d)
-- generalized hyper-cullen (x^y\*y^x+1)
-- generalized hyper-woodall (x^y\*y^x-1)
-- near-cullen ((n-1)\*2^n+1 and (n+1)\*2^n+1)
-- near-woodall ((n-1)\*2^n-1 and (n+1)\*2^n-1)
-- n! - n - 1
-- n! + n + 1
-- x^y + y^x
-- x^y - y^x
+- compositorial n!/n\# +- 1
+- depression A(B)wA with B < A
+- near-cunningham k\*b^n +- d
+- near-repdigit A(B)w and (A)wB with A != B
+- near-repdigit palindrome (A)wB(A)w with A != B
+- others
+  - 2^n+1
+  - cullen/woodall k\*2^n +- 1 (or n\*2^n +- 1 ?)
+  - cunningham b^n +- 1
+  - factorial n! +- 1
+  - fermat 2^2^n+1
+  - fibonacci and lucas
+  - generalized hyper-cullen/woodall k^n\*n^k +- 1
+  - mersenne 2^n-1
+  - n! +- (n+1)
+  - near cullen/woodall (k +- 1)\*2^k +- 1
+  - repunit (n^x-1)/(n-1)
+  - woodall
+  - x^y +- y^x
+- plateau A(B)wA with B > A
+- primorial x# +- y
+- quasi-repdigit A(B)wC where A,B,C distinct
 
 # ideas from y-cruncher
 
@@ -161,8 +170,11 @@ repdigit types in base b, note that some factor trivially to another type
 - pi^pi^pi
 - pi^e
 
-# ideas used for production database
+# ideas from oeis.org
 
-- fibonacci numbers
-- lucas numbers
-- repunits (positive bases)
+- A000055 number of trees with n unlabeled nodes
+- A000088 number of simple graphs on n unlabeled nodes
+- A000664 number of graphs with n edges
+- A001187 number of connected labeled graphs with n nodes
+- A001349 number of simple connected graphs on n unlabeled nodes
+- A002494 number of n node graphs without isolated nodes
