@@ -1,0 +1,6 @@
+cypari2
+gmpy2
+psycopg
+quart
+requests
+tqdm
