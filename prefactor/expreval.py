@@ -59,14 +59,14 @@ exprfuncs = {
     'multi_factorial': sequences.multiFactorial,
 }
 
-def expreval(expr:str,n:int) -> int:
+def expreval(expr:str,n:int,/) -> int:
     ret = eval(expr.replace('{}',repr(n)),exprfuncs)
     assert isinstance(ret,int)
     return ret
 
 if __name__ == '__main__':
 
-    def seqcmp(expr:str,i:int,j:int,seq:list[int]):
+    def seqcmp(expr:str,i:int,j:int,seq:list[int],/):
         seq2 = [expreval(expr,k) for k in range(i,j)]
         assert len(seq) == len(seq2)
         for k in range(i,j):

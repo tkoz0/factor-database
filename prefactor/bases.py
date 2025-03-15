@@ -10,7 +10,7 @@ public interface:
 all these functions check correctness conditions with assert
 '''
 
-def toBase(base:int,n:int) -> list[int]:
+def toBase(base:int,n:int,/) -> list[int]:
     ''' convert number to base representation
     (most significant first, 0 is empty list) '''
     assert base >= 2
@@ -21,7 +21,7 @@ def toBase(base:int,n:int) -> list[int]:
         ret.append(r)
     return ret[::-1]
 
-def toFactorialBase(n:int) -> list[int]:
+def toFactorialBase(n:int,/) -> list[int]:
     ''' factorial base representation (most significant first, excludes 0) '''
     assert n >= 0
     ret = []
@@ -32,7 +32,7 @@ def toFactorialBase(n:int) -> list[int]:
         ret.append(r)
     return ret[::-1]
 
-def fromBase(base:int,n:list[int]) -> int:
+def fromBase(base:int,n:list[int],/) -> int:
     ''' convert base representation to integer (most significant first) '''
     assert base >= 2
     n = n[::-1]
@@ -42,7 +42,7 @@ def fromBase(base:int,n:list[int]) -> int:
         ret += d * base**i
     return ret
 
-def fromFactorialBase(n:list[int]) -> int:
+def fromFactorialBase(n:list[int],/) -> int:
     ''' convert factorial base representation to integer
     (most significant first, excluding 0) '''
     n = n[::-1]

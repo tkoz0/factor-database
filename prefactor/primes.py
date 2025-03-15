@@ -13,16 +13,16 @@ import gmpy2
 import cypari2
 pari = cypari2.Pari()
 
-def isPrp(n:int,k:int=0) -> bool:
+def isPrp(n:int,k:int=0,/) -> bool:
     ''' probable prime test with gmpy2 (up to k miller rabin tests) '''
     assert k >= 0
     return gmpy2.is_prime(n,k+24) # type:ignore
 
-def isPrime(n:int) -> bool:
+def isPrime(n:int,/) -> bool:
     ''' proven primality test with cypari2 '''
     return pari.isprime(n)
 
-def primeSieve(L:int) -> list[int]:
+def primeSieve(L:int,/) -> list[int]:
     ''' sieve primes below L, sorted list '''
     if L <= 2:
         return []
@@ -52,7 +52,7 @@ def _cache_expand():
     _cache_composites = [n for n in range(2,_cache_limit)
                          if n not in _cache_primes_set]
 
-def nthPrime(n:int) -> int:
+def nthPrime(n:int,/) -> int:
     ''' nth prime (1-indexed starting with 2) '''
     global _cache_primes
     assert n > 0
@@ -60,7 +60,7 @@ def nthPrime(n:int) -> int:
         _cache_expand()
     return _cache_primes[n-1]
 
-def nthComposite(n:int) -> int:
+def nthComposite(n:int,/) -> int:
     ''' nth composite (1-indexed starting with 4) '''
     global _cache_composites
     assert n > 0

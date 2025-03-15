@@ -13,7 +13,7 @@ from bases import fromBase
 # recur = (c_d,c_{d-1},...,c_1) meaning
 #         f(n) = c_1*f(n-1) + c_2*f(n-2) + ... + c_d*f(n-d)
 def _const_recur_linear_nocache(start:tuple[int,...],
-                                recur:tuple[int,...]) \
+                                recur:tuple[int,...],/) \
                             -> Callable[[int],int]:
     assert len(start) == len(recur)
     def seq(n:int) -> int:
@@ -32,7 +32,7 @@ def _const_recur_linear_nocache(start:tuple[int,...],
 # recur = (c_1,c_2,...,c_d) meaning
 #         f(n) = c_1*f(n-1) + c_2*f(n-2) + ... + c_d*f(n-d)
 def _const_recur_linear_cache(start:tuple[int,...],
-                              recur:tuple[int,...]) \
+                              recur:tuple[int,...],/) \
                             -> Callable[[int],int]:
     assert len(start) == len(recur)
     d = len(recur)
@@ -70,16 +70,16 @@ pell = _const_recur_linear_cache((0,1),(1,2))
 # V(2,-1)
 pell_lucas = _const_recur_linear_cache((2,2),(1,2))
 
-def _make_lucas_u(p:int,q:int) -> Callable[[int],int]:
+def _make_lucas_u(p:int,q:int,/) -> Callable[[int],int]:
     return _const_recur_linear_cache((0,1),(-q,p))
 
-def _make_lucas_v(p:int,q:int) -> Callable[[int],int]:
+def _make_lucas_v(p:int,q:int,/) -> Callable[[int],int]:
     return _const_recur_linear_cache((2,p),(-q,p))
 
 _cache_lu: dict[tuple[int,int],Callable[[int],int]] = dict()
 _cache_lv: dict[tuple[int,int],Callable[[int],int]] = dict()
 
-def lucasU(p:int,q:int,n:int) -> int:
+def lucasU(p:int,q:int,n:int,/) -> int:
     '''
     generic lucas U sequence function with result caching
     '''
@@ -88,7 +88,7 @@ def lucasU(p:int,q:int,n:int) -> int:
         _cache_lu[(p,q)] = _make_lucas_u(p,q)
     return _cache_lu[(p,q)](n)
 
-def lucasV(p:int,q:int,n:int) -> int:
+def lucasV(p:int,q:int,n:int,/) -> int:
     '''
     generic lucas V sequence function with result caching
     '''
@@ -99,7 +99,7 @@ def lucasV(p:int,q:int,n:int) -> int:
 
 _cache_f: list[int] = [1]
 
-def factorial(n:int) -> int:
+def factorial(n:int,/) -> int:
     global _cache_f
     assert n >= 0
     while n >= len(_cache_f):
@@ -108,7 +108,7 @@ def factorial(n:int) -> int:
 
 _cache_m: dict[int,list[int]] = dict()
 
-def multiFactorial(f:int,n:int) -> int:
+def multiFactorial(f:int,n:int,/) -> int:
     global _cache_m
     assert f >= 1
     assert n >= 0
@@ -119,7 +119,7 @@ def multiFactorial(f:int,n:int) -> int:
         mf.append(mf[-f]*len(mf))
     return mf[n]
 
-def primorial(n:int) -> int:
+def primorial(n:int,/) -> int:
     #TODO cache
     assert n > 0
     ret = 1
@@ -129,7 +129,7 @@ def primorial(n:int) -> int:
         i += 1
     return ret
 
-def compositorial(n:int) -> int:
+def compositorial(n:int,/) -> int:
     #TODO cache
     assert n > 0
     ret = 1
@@ -139,28 +139,28 @@ def compositorial(n:int) -> int:
         i += 1
     return ret
 
-def mersenne(n:int) -> int:
+def mersenne(n:int,/) -> int:
     assert n > 0
     return 2**nthPrime(n)-1
 
-def fermat(n:int) -> int:
+def fermat(n:int,/) -> int:
     assert n >= 0
     return 2**2**n+1
 
-def gfermat1(a:int,n:int) -> int:
+def gfermat1(a:int,n:int,/) -> int:
     assert a >= 2
     assert n >= 0
     return (a**2**n+1) // (1 if a % 2 == 0 else 2)
     # division for all even sequences as on wikipedia
 
-def _gcd2(a:int,b:int) -> int:
+def _gcd2(a:int,b:int,/) -> int:
     a = abs(a)
     b = abs(b)
     while b != 0:
         a,b = b,a%b
     return a
 
-def gfermat2(a:int,b:int,n:int) -> int:
+def gfermat2(a:int,b:int,n:int,/) -> int:
     assert a > b > 0
     assert n >= 0
     assert _gcd2(a,b) == 1
@@ -168,7 +168,7 @@ def gfermat2(a:int,b:int,n:int) -> int:
     # division for all even seqquences as on wikipedia
     # requires gcd(a,b)=1 as on wikipedia
 
-def repunit(base:int,index:int) -> int:
+def repunit(base:int,index:int,/) -> int:
     assert base >= 2
     assert index >= 0
     ret = (base**index - 1) // (base-1)
@@ -176,7 +176,7 @@ def repunit(base:int,index:int) -> int:
 
 _digits = '0123456789abcdefghijklmnopqrstuvwxyz'
 
-def nearRepdigit(base:int,pattern:str,index:int) -> int:
+def nearRepdigit(base:int,pattern:str,index:int,/) -> int:
     assert 2 <= base <= 36
     assert index >= 0
     digits: list[int] = []
