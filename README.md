@@ -1,6 +1,6 @@
 # factor database
 
-Database website for tracking integer factorization progress.
+This is a web app for tracking integer factorization progress.
 
 - start factoring from specially selected number sequences (numbers table)
 - track intermediate factor results for larger factors (factors table)
@@ -34,8 +34,15 @@ Setup instructions after cloning the repository assume commands are run at the
 repository root unless otherwise stated. File paths are given relative to the
 repository root unless otherwise stated.
 
+Recommendations for a production instance
+- create a separate linux user for factor database
+- use a linux service for production (see fdb.service for an example)
+- setup automatic database backups
+
 Clone repository
 - `git clone https://github.com/tkoz0/factor-database`
+
+Install the python packages in `requirements.txt`
 
 Get Mathjax
 - get mathjax and put it at `static/mathjax/tex-svg-full.js`
@@ -60,8 +67,6 @@ Production setup
 Running
 - for development run `main.py` directly
 - for production run `hypercorn main:app`
-- linux service is suggested for production
-- see `fdb.service` for a linux service example
 
 # maintenance
 
@@ -74,20 +79,9 @@ TODO needs instructions
 
 # todo
 
-- clean up todo and goal lists
-- caching for pages that take a lot of querties, particularly the factor tables
-- setup a python virtual environment as part of the repo
-  - requires at least python3.12
-  - include a requirements.txt
-- implement an api
-  - some possible routes below
-  - choose get/post where appropriate
-  - /api/get_number (get, by id or value)
-  - /api/get_factor (get, by id or value)
-  - /api/submit_factors (post)
-  - /api/list_category (get)
 - functions for cleaning up other database data
   - remove unreferenced primes/numbers
+  - remove old factorizations (without the smallest prime factor)
 - make factors under 2^64 go straight to small primes storage data
   - do not create factor ids for small factors
   - require that submitted factors under 2^64 are prime
@@ -103,16 +97,24 @@ TODO needs instructions
 - basic info/description on production
   - store in /numbers scripts and jinja templates for certain types
 - near repdigit repunit related formulas script
-- make this readme better and improve the setup instructions
-- use python `/` and `*` for positional/keyword only arguments
-- improvements to type annotations
-- use column names instead of `*` in sql queries
 
 # later todos
 
+- use column names instead of `*` in sql queries
+- caching for pages that take a lot of querties, particularly the factor tables
+- setup a python virtual environment as part of the repo
+  - requires at least python3.12
+  - include a requirements.txt
+- implement an api
+  - some possible routes below
+  - choose get/post where appropriate
+  - /api/get_number (get, by id or value)
+  - /api/get_factor (get, by id or value)
+  - /api/submit_factors (post)
+  - /api/list_category (get)
 - look at time limits for quart routes to avoid an infinite loop bug
 - look at query planner for various queries in database.py
-- support compression for submission data
+- support compression for submission data (and possibly other data)
 - make factor page show numbers and factors containing it as a factor
 - find a better way to update factors with few operations
 - function for removing small factors (64 bit) from the database
@@ -132,6 +134,8 @@ TODO needs instructions
 - recent page (make recent.py)
 - ecm progress
   - estimate smallest factor size
+  - ecm progress can be removed once factored
+  - ecm progress is inherited to composite cofactors
 - factoring time estimates
 - JSON API
 

@@ -1,6 +1,9 @@
 -- =============================================================================
 -- Factor Database PostgreSQL Schema
 -- creates the tables for the initial database setup
+-- currently no migration system is in place
+-- database schema may change and is adjusted on production manually
+-- parts of app/database.py depend on column order being exactly as here
 -- =============================================================================
 
 create table logs
@@ -26,8 +29,6 @@ create table factors
     -- value = factor1 * factor2 (reference factorization if known)
     -- factor1 should be the smallest known factor (which can change)
     f1_id bigint default null, f2_id bigint default null,
-    created timestamp default timezone('utc',now()) not null,
-    modified timestamp default timezone('utc',now()) not null,
     constraint check_primality check (primality in (-1,0,1,2)),
     constraint check_factor_ids check (
         -- both null or both non null
@@ -50,15 +51,11 @@ create table numbers
     -- big endian integer value, no leading zero bytes
     value bytea unique not null,
     -- small prime factors as 2/4/8 byte values (big endian)
-    -- 2 byte values from automatic trial division
-    -- 4/8 byte values stored afterward to optimize
     spf2 bytea, spf4 bytea, spf8 bytea,
     -- reference factors table for nontrivial factorization
     cof_id bigint default null,
     -- is factorization complete
     complete boolean default false not null,
-    created timestamp default timezone('utc',now()) not null,
-    modified timestamp default timezone('utc',now()) not null,
     constraint check_value check (
         length(value) > 0 and substr(value,1,1) <> '\x00'::bytea),
     constraint check_spf2 check (spf2 = null or length(spf2) % 2 = 0),
@@ -107,8 +104,6 @@ create table categories
     info text not null,
     -- expression for nth term
     expr text,
-    created timestamp default timezone('utc',now()) not null,
-    modified timestamp default timezone('utc',now()) not null,
     constraint check_name check (
         (id = 0 and name = '') or
         (name ~ '^[\w\+\-\=][\w\+\-\=\.]*$')),

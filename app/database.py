@@ -83,16 +83,16 @@ def _now() -> datetime:
     # (convert to .timestamp() which is unix float if supporting sqlite3)
     return datetime.now(UTC).replace(tzinfo=None)
 
-def _ts_to_str(d:datetime) -> str:
+def _ts_to_str(d:datetime,/) -> str:
     ''' convert timestamp to string format used by sqlite3 '''
     return time.strftime(_time_fmt,d.timetuple())
 
-def _str_to_ts(s:str) -> datetime:
+def _str_to_ts(s:str,/) -> datetime:
     ''' convert string (YYYY-mm-dd HH:MM:SS) to datetime object '''
     st = time.strptime(s,_time_fmt)
     return datetime.fromtimestamp(time.mktime(st)).replace(tzinfo=UTC)
 
-def _regexp(expr:str, item:str) -> bool:
+def _regexp(expr:str,item:str,/) -> bool:
     ''' leftover function attempting to support sqlite3 regexp extension '''
     return re.search(expr,item) is not None
 
@@ -163,15 +163,15 @@ if LOG_TO_FILE:
     _logname = f'{_logdir}/{name}.log'
     _logfile = open(_logname,'a')
 
-def _stderr_write(s:str):
+def _stderr_write(s:str,/):
     ''' write to stderr '''
     print(s,file=sys.stderr,flush=True)
 
-def _stderr_log(s:str):
+def _stderr_log(s:str,/):
     ''' write a log message to stderr '''
     _stderr_write(f'[{__name__}] [{_ts_to_str(_now())}] {s}')
 
-def _dblog_str(s:str,save_to_db:bool,level:int):
+def _dblog_str(s:str,save_to_db:bool,level:int,/):
     ''' write message to stderr, database table, and possibly a log file '''
     global _logfile
     _stderr_log(s)
@@ -183,19 +183,19 @@ def _dblog_str(s:str,save_to_db:bool,level:int):
         con.execute("insert into logs (text,level) values (%s,%s);",(s,level))
         con.commit()
 
-def _dblog_debug(s:str):
+def _dblog_debug(s:str,/):
     ''' log debug message (not saved in database) '''
     _dblog_str(f'[DEBUG] {s}',False,LogLevel.INFO)
 
-def _dblog_info(s:str):
+def _dblog_info(s:str,/):
     ''' log database info message '''
     _dblog_str(f'[INFO] {s}',True,LogLevel.INFO)
 
-def _dblog_warn(s:str):
+def _dblog_warn(s:str,/):
     ''' log database warning message '''
     _dblog_str(f'[WARN] {s}',True,LogLevel.WARN)
 
-def _dblog_crit(s:str):
+def _dblog_crit(s:str,/):
     ''' log database critical message '''
     _dblog_str(f'[CRIT] {s}',True,LogLevel.CRIT)
 
@@ -210,15 +210,24 @@ def closeLogging():
 # data processing
 #===============================================================================
 
-def _int_to_dbnum(n:int) -> bytes:
+def _int_to_dbnum(n:int,/) -> bytes:
     ''' convert nonnegative integer for database storage (to byte array) '''
     return n.to_bytes((n.bit_length()+7)//8,'big',signed=False)
 
-def _dbnum_to_int(b:bytes) -> int:
+def _dbnum_to_int(b:bytes,/) -> int:
     ''' convert database storage to integer (from byte array) '''
     return int.from_bytes(b,'big',signed=False)
 
-def _spfs_to_dblists(ns:Iterable[int]) \
+'''
+currently small prime factors are stored in 3 byte arrays
+each stores 2/4/8 byte prime factors in a raw byte sequence (big endian)
+these numbers stored must be prime and sorted in nondecreasing order
+spf2 = sequence of primes (p < 2^16)
+spf4 = sequence of primes (2^16 < p < 2^32)
+spf8 = sequence of primes (2^32 < p < 2^64)
+'''
+
+def _spfs_to_dblists(ns:Iterable[int],/) \
                     -> tuple[bytes|None,bytes|None,bytes|None]:
     '''
     convert small prime factors to byte arrays (big endian) for database
@@ -242,7 +251,7 @@ def _spfs_to_dblists(ns:Iterable[int]) \
            struct.pack(f'>{len(n4)}I',*n4) if len(n4) else None, \
            struct.pack(f'>{len(n8)}Q',*n8) if len(n8) else None
 
-def _dblists_to_spfs(b2:bytes|None,b4:bytes|None,b8:bytes|None) \
+def _dblists_to_spfs(b2:bytes|None,b4:bytes|None,b8:bytes|None,/) \
         -> tuple[tuple[int,...],tuple[int,...],tuple[int,...]]:
     '''
     extract small prime factors from database storage
@@ -252,9 +261,10 @@ def _dblists_to_spfs(b2:bytes|None,b4:bytes|None,b8:bytes|None) \
            () if b4 is None else struct.unpack(f'>{len(b4)//4}I',b4), \
            () if b8 is None else struct.unpack(f'>{len(b8)//8}Q',b8)
 
-def _dbprp(n:int) -> int:
-    # internal basic primality tester, must be fast
-    # assumes n was already tested for small prime divisors
+def _dbprp(n:int,/) -> int:
+    # internal basic primality tester, should be fast
+    # recommended to find small prime divisors and insert them with number first
+    # further primality results should be computed elsewhere, use scripts to add
     if n.bit_length() > PRP_BIT_LIM:
         return Primality.UNKNOWN
     if n.bit_length() <= PROVE_BIT_LIM:
@@ -290,30 +300,24 @@ class FactorRow:
     def __init__(self,row):
         if DEBUG_EXTRA:
             assert isinstance(row,tuple)
-            assert len(row) == 7
+            assert len(row) == 5
             assert isinstance(row[0],int)
             assert isinstance(row[1],bytes)
             assert isinstance(row[2],int)
             assert row[3] is None or isinstance(row[3],int)
             assert row[4] is None or isinstance(row[4],int)
-            assert isinstance(row[5],datetime)
-            assert isinstance(row[6],datetime)
         self.id: int = row[0]
         self.value: int = _dbnum_to_int(row[1])
         self.primality: int = row[2]
         self.f1_id: int|None = row[3]
         self.f2_id: int|None = row[4]
-        self.created: datetime = row[5]
-        self.modified: datetime = row[6]
 
     def __repr__(self) -> str:
         return f'<FactorRow(id={self.id},' \
             f'value={self.value},' \
             f'primality={self.primality},' \
             f'f1_id={self.f1_id},' \
-            f'f2_id={self.f2_id},' \
-            f'created={repr(self.created)},' \
-            f'modified={self.modified})>'
+            f'f2_id={self.f2_id})>'
 
 class NumberRow:
     '''
@@ -324,7 +328,7 @@ class NumberRow:
     def __init__(self,row):
         if DEBUG_EXTRA:
             assert isinstance(row,tuple)
-            assert len(row) == 9
+            assert len(row) == 7
             assert isinstance(row[0],int)
             assert isinstance(row[1],bytes)
             assert row[2] is None or isinstance(row[2],bytes)
@@ -332,8 +336,6 @@ class NumberRow:
             assert row[4] is None or isinstance(row[4],bytes)
             assert row[5] is None or isinstance(row[5],int)
             assert isinstance(row[6],bool)
-            assert isinstance(row[7],datetime)
-            assert isinstance(row[8],datetime)
         self.id: int = row[0]
         self.value: int = _dbnum_to_int(row[1])
         n2,n4,n8 = _dblists_to_spfs(row[2],row[3],row[4])
@@ -347,8 +349,6 @@ class NumberRow:
         self.spfs = n2 + n4 + n8
         self.cof_id: int|None = row[5]
         self.complete: bool = row[6]
-        self.created: datetime = row[7]
-        self.modified: datetime = row[8]
 
     def __repr__(self) -> str:
         return f'<NumberRow(' \
@@ -356,18 +356,16 @@ class NumberRow:
             f'value={self.value},' \
             f'spfs=[{','.join(map(str,self.spfs))}],' \
             f'cof_id={self.cof_id},' \
-            f'complete={self.complete},' \
-            f'created={repr(self.created)},' \
-            f'modified={repr(self.modified)})>'
+            f'complete={self.complete})>'
 
-def _getnumv(n:int,con:psycopg.Connection) -> None|NumberRow:
+def _getnumv(n:int,con:psycopg.Connection,/) -> None|NumberRow:
     # get number by value (from connection)
     cur = con.execute("select * from numbers where value = %s;",
                       (_int_to_dbnum(n),))
     row = cur.fetchone()
     return None if row is None else NumberRow(row)
 
-def getNumberByValue(n:int) -> None|NumberRow:
+def getNumberByValue(n:int,/) -> None|NumberRow:
     '''
     returns the database row for a number (those to be factored)
     result is none if number is not in database
@@ -377,13 +375,13 @@ def getNumberByValue(n:int) -> None|NumberRow:
     with _dbcon() as con:
         return _getnumv(n,con)
 
-def _getnumi(i:int,con:psycopg.Connection) -> None|NumberRow:
+def _getnumi(i:int,con:psycopg.Connection,/) -> None|NumberRow:
     # get number by id (from connection)
     cur = con.execute("select * from numbers where id = %s;",(i,))
     row = cur.fetchone()
     return None if row is None else NumberRow(row)
 
-def getNumberByID(i:int) -> None|NumberRow:
+def getNumberByID(i:int,/) -> None|NumberRow:
     '''
     returns the database row for a number (those to be factored)
     result is none if number is not in database
@@ -391,14 +389,14 @@ def getNumberByID(i:int) -> None|NumberRow:
     with _dbcon() as con:
         return _getnumi(i,con)
 
-def _getfacv(n:int,con:psycopg.Connection) -> None|FactorRow:
+def _getfacv(n:int,con:psycopg.Connection,/) -> None|FactorRow:
     # get factor by value (from connection)
     cur = con.execute("select * from factors where value = %s;",
                       (_int_to_dbnum(n),))
     row = cur.fetchone()
     return None if row is None else FactorRow(row)
 
-def getFactorByValue(n:int) -> None|FactorRow:
+def getFactorByValue(n:int,/) -> None|FactorRow:
     '''
     returns the database row for a factor (intermediate results)
     result is none if factor is not in database
@@ -408,13 +406,13 @@ def getFactorByValue(n:int) -> None|FactorRow:
     with _dbcon() as con:
         return _getfacv(n,con)
 
-def _getfaci(i:int,con:psycopg.Connection) -> None|FactorRow:
+def _getfaci(i:int,con:psycopg.Connection,/) -> None|FactorRow:
     # get factor by id (from connection)
     cur = con.execute("select * from factors where id = %s;",(i,))
     row = cur.fetchone()
     return None if row is None else FactorRow(row)
 
-def getFactorByID(i:int) -> None|FactorRow:
+def getFactorByID(i:int,/) -> None|FactorRow:
     '''
     returns the database row for a factor (intermediate results)
     result is none if factor is not in database
@@ -422,7 +420,8 @@ def getFactorByID(i:int) -> None|FactorRow:
     with _dbcon() as con:
         return _getfaci(i,con)
 
-def _getnums_withfac(ret:list[NumberRow],row:FactorRow,con:psycopg.Connection):
+def _getnums_withfac(ret:list[NumberRow],row:FactorRow,
+                     con:psycopg.Connection,/):
     # get numbers with factor i as a factor (primary factorization only)
     cur = con.execute("select * from numbers where cof_id = %s;",(row.id,))
     for nrow in cur.fetchall():
@@ -442,7 +441,7 @@ def _getnums_withfac(ret:list[NumberRow],row:FactorRow,con:psycopg.Connection):
     for frow in cur.fetchall():
         _getnums_withfac(ret,FactorRow(frow),con)
 
-def setFactorPrime(i:int, test:bool):
+def setFactorPrime(i:int,test:bool,/):
     '''
     sets a factor (by ID) as proven prime
     exception if an error occurs
@@ -457,8 +456,7 @@ def setFactorPrime(i:int, test:bool):
 
         if test and not prpTest(row.value):
             raise FDBException(f'factor id {i} is actually composite')
-        con.execute("update factors set primality = %s, "
-                    "modified = default where id = %s;",
+        con.execute("update factors set primality = %s where id = %s;",
                     (Primality.PRIME,i))
 
         con.commit()
@@ -471,7 +469,7 @@ def setFactorPrime(i:int, test:bool):
     for num_row in num_rows:
         completeNumber(num_row.id)
 
-def setFactorComposite(i:int, test:bool):
+def setFactorComposite(i:int,test:bool,/):
     '''
     sets a factor (by ID) as proven composite
     exception if an error occurs
@@ -489,8 +487,7 @@ def setFactorComposite(i:int, test:bool):
         if test and prpTest(row.value):
             raise FDBException(f'factor id {i} prp test says it is prime,'
                                f' check if it is a BPSW pseudoprime?')
-        con.execute("update factors set primality = %s, "
-                    "modified = default where id = %s;",
+        con.execute("update factors set primality = %s where id = %s;",
                     (Primality.COMPOSITE,i))
 
         con.commit()
@@ -503,11 +500,11 @@ def setFactorComposite(i:int, test:bool):
             _getnums_withfac(num_rows,row,con)
 
         for num_row in num_rows:
-            con.execute("update numbers set complete = false, "
-                        "modified = default where id = %s;",(num_row.id,))
+            con.execute("update numbers set complete = false where id = %s;",
+                        (num_row.id,))
         con.commit()
 
-def _get_facfac_helper(row:FactorRow|None,con:psycopg.Connection) \
+def _get_facfac_helper(row:FactorRow|None,con:psycopg.Connection,/) \
         -> None|list[tuple[int,int,int]]:
     # helper function to get factorization of a factor
     if row is None:
@@ -540,7 +537,7 @@ def _get_facfac_helper(row:FactorRow|None,con:psycopg.Connection) \
 
     return ret
 
-def _get_numfac_helper(n_row:NumberRow|None,con:psycopg.Connection) \
+def _get_numfac_helper(n_row:NumberRow|None,con:psycopg.Connection,/) \
         -> None|list[tuple[int,int,None|int]]:
     # helper function to get factorization of a number
     if n_row is None:
@@ -565,7 +562,8 @@ def _get_numfac_helper(n_row:NumberRow|None,con:psycopg.Connection) \
 
     return ret
 
-def getNumberFactorizationByValue(n:int) -> None|list[tuple[int,int,None|int]]:
+def getNumberFactorizationByValue(n:int,/) \
+        -> None|list[tuple[int,int,None|int]]:
     '''
     builds the current factorization data for a number, finding by value
     returns none if number does not exist
@@ -577,7 +575,7 @@ def getNumberFactorizationByValue(n:int) -> None|list[tuple[int,int,None|int]]:
     with _dbcon() as con:
         return _get_numfac_helper(_getnumv(n,con),con)
 
-def getNumberFactorizationByID(i:int) -> None|list[tuple[int,int,None|int]]:
+def getNumberFactorizationByID(i:int,/) -> None|list[tuple[int,int,None|int]]:
     '''
     builds the current factorization data for a number, finding by id
     returns none if number does not exist
@@ -587,7 +585,7 @@ def getNumberFactorizationByID(i:int) -> None|list[tuple[int,int,None|int]]:
     with _dbcon() as con:
         return _get_numfac_helper(_getnumi(i,con),con)
 
-def _addfac(f:int) -> FactorRow:
+def _addfac(f:int,/) -> FactorRow:
     # return factor row, inserting factor if it is not in database
     assert f > 1, 'internal error'
     f_b = _int_to_dbnum(f)
@@ -613,7 +611,7 @@ def _addfac(f:int) -> FactorRow:
                         f'({ret.value.bit_length()} bits)')
         return ret
 
-def _addfacs(i:int,fs:Iterable[int]):
+def _addfacs(i:int,fs:Iterable[int],/):
     # try provided factors to make progress on cofactor of number id i
     with _dbcon() as con:
         for f in sorted(fs):
@@ -635,7 +633,7 @@ def _addfacs(i:int,fs:Iterable[int]):
                 except:
                     pass
 
-def addNumber(n:int,fs:Iterable[int]=[]) -> tuple[bool,NumberRow]:
+def addNumber(n:int,fs:Iterable[int]=[],/) -> tuple[bool,NumberRow]:
     '''
     adds a number to the database, exception if n <= 0 or above size limit
     returns a tuple (True/False for if it was newly added, the row object)
@@ -703,7 +701,7 @@ def addNumber(n:int,fs:Iterable[int]=[]) -> tuple[bool,NumberRow]:
     completeNumber(row.id)
     return (True,row)
 
-def deleteNumberByID(i:int) -> bool:
+def deleteNumberByID(i:int,/) -> bool:
     '''
     delete a number from the database (by ID)
     returns true if this ID does not exist or it is successfully removed
@@ -720,10 +718,10 @@ def deleteNumberByID(i:int) -> bool:
         except:
             return False
 
-def deleteNumberByValue(n:int) -> bool:
+def deleteNumberByValue(n:int,/) -> bool:
     '''
     delete a number from the database (by value)
-    returns true if thihs value does not exist or it is successfully removed
+    returns true if this value does not exist or it is successfully removed
     '''
     with _dbcon() as con:
         try:
@@ -749,7 +747,7 @@ def _addfac_try(n:int,*fs:int):
             pass
 
 def _get_dbf_recur_large(mults:dict[int,int],i:int|None,
-                         con:psycopg.Connection):
+                         con:psycopg.Connection,/):
     # recursively find all factors starting with a divisor
     if i is None or i in mults:
         return
@@ -770,7 +768,7 @@ def _get_dbf_recur_large(mults:dict[int,int],i:int|None,
     for row in cur.fetchall():
         _get_dbf_recur_large(mults,row[0],con)
 
-def addFactor(n:int, f:int):
+def addFactor(n:int,f:int,/):
     '''
     factors a number n in the factor database with a factor f
     exception if n not in database, invalid factor, or not a new factor
@@ -840,7 +838,7 @@ def addFactor(n:int, f:int):
 
         # update factorization for n
         con.execute("update factors set f1_id = %s, f2_id = %s, "
-                    "modified = default, primality = %s where id = %s;",
+                    "primality = %s where id = %s;",
                     (f_row.id,g_row.id,Primality.COMPOSITE,n_row.id))
 
         con.commit()
@@ -914,7 +912,7 @@ def addFactor(n:int, f:int):
     for num_row in num_rows:
         completeNumber(num_row.id)
 
-def deleteFactorByID(i:int) -> bool:
+def deleteFactorByID(i:int,/) -> bool:
     '''
     delete a factor from the database (by ID)
     returns true if this ID does not exist or it is successfully removed
@@ -931,7 +929,7 @@ def deleteFactorByID(i:int) -> bool:
         except:
             return False
 
-def deleteFactorByValue(f:int) -> bool:
+def deleteFactorByValue(f:int,/) -> bool:
     '''
     delete a factor from the database (by value)
     returns true if this value does not exist or it is successfully removed
@@ -948,13 +946,13 @@ def deleteFactorByValue(f:int) -> bool:
         except:
             return False
 
-def _getoldfac(i:int,con:psycopg.Connection) -> list[tuple[int,int]]:
+def _getoldfac(i:int,con:psycopg.Connection,/) -> list[tuple[int,int]]:
     # returns old factor pairs for factor id i, empty list if no factor id i
     cur = con.execute("select f1_id,f2_id from factors_old "
                       "where fac_id = %s;",(i,))
     return cur.fetchall()
 
-def getOldFactors(i:int) -> list[tuple[int,int]]:
+def getOldFactors(i:int,/) -> list[tuple[int,int]]:
     '''
     get a list of factor ID pairs for old factorizations
     '''
@@ -962,7 +960,7 @@ def getOldFactors(i:int) -> list[tuple[int,int]]:
         return _getoldfac(i,con)
 
 def _get_dbf_recur_small(divs:dict[int,int],i:int|None,
-                         con:psycopg.Connection):
+                         con:psycopg.Connection,/):
     # recursively find all divisors starting with a factor
     if i is None or i in divs:
         return
@@ -980,7 +978,7 @@ def _get_dbf_recur_small(divs:dict[int,int],i:int|None,
         _get_dbf_recur_small(divs,f1_id,con)
         _get_dbf_recur_small(divs,f2_id,con)
 
-def completeNumber(i:int) -> bool:
+def completeNumber(i:int,/) -> bool:
     '''
     mark number (by id) as completely factored
     consolidate all 64 bit prime factors into the row storage
@@ -1028,8 +1026,7 @@ def completeNumber(i:int) -> bool:
 
         spf2b,spf4b,spf8b = _spfs_to_dblists(spfs)
         con.execute("update numbers set spf2 = %s, spf4 = %s, spf8 = %s, "
-                    "cof_id = %s, complete = %s, modified = default "
-                    "where id = %s;",
+                    "cof_id = %s, complete = %s where id = %s;",
                     (spf2b,spf4b,spf8b,cof_id,completed,i))
         con.commit()
 
@@ -1037,7 +1034,7 @@ def completeNumber(i:int) -> bool:
         _dblog_info(f'completed factorization of number id {i}')
     return completed
 
-def makeFactorProgress(i:int):
+def makeFactorProgress(i:int,/):
     '''
     use the known factorization to progress factoring of all divisors
     (this function may not be necessary and is currently unused)
@@ -1072,7 +1069,7 @@ def makeFactorProgress(i:int):
 # other factorization functions
 #===============================================================================
 
-def factorNumberByIdWithFactors(i:int,fs:Iterable[int]):
+def factorNumberByIdWithFactors(i:int,fs:Iterable[int],/):
     '''
     use a factor list to make progress on factoring a number
     '''
@@ -1083,7 +1080,7 @@ def factorNumberByIdWithFactors(i:int,fs:Iterable[int]):
     if not row.complete:
         _addfacs(i,fs)
 
-def factorNumberByValueWithFactors(n:int,fs:Iterable[int]):
+def factorNumberByValueWithFactors(n:int,fs:Iterable[int],/):
     '''
     use a factor list to make progress on factoring a number
     '''
@@ -1094,7 +1091,7 @@ def factorNumberByValueWithFactors(n:int,fs:Iterable[int]):
     if not row.complete:
         _addfacs(row.id,fs)
 
-def factorNumberByIdWithFactorDB(i:int):
+def factorNumberByIdWithFactorDB(i:int,/):
     '''
     get factors from factordb.com
     same as factorNumberByValueWithFactorDB but using number ID
@@ -1115,7 +1112,7 @@ def factorNumberByIdWithFactorDB(i:int):
 
     factorNumberByIdWithFactors(i,(int(f) for f,_ in data['factors']))
 
-def factorNumberByValueWithFactorDB(n:int):
+def factorNumberByValueWithFactorDB(n:int,/):
     '''
     get factors from factordb.com to use for making factoring progress
     if n is newly created on factordb.com then it may have to be queried later
@@ -1137,7 +1134,7 @@ def factorNumberByValueWithFactorDB(n:int):
 
     factorNumberByValueWithFactors(n,(int(f) for f,_ in data['factors']))
 
-def factorCategoryIndexWithFactorDB(path:tuple[str,...]|str, index:int):
+def factorCategoryIndexWithFactorDB(path:tuple[str,...]|str,index:int,/):
     '''
     attempts to make factor progress with factordb.com
     '''
@@ -1158,7 +1155,7 @@ def factorCategoryIndexWithFactorDB(path:tuple[str,...]|str, index:int):
         if row[0] is not None: # none for small exceptions
             factorNumberByIdWithFactorDB(row[0])
 
-def _value_size_param(bitlen:int|None) -> tuple[int,bytes]:
+def _value_size_param(bitlen:int|None,/) -> tuple[int,bytes]:
     # return byte length and largest first byte value
     if bitlen is None:
         bitlen = NUM_BIT_LIM
@@ -1167,7 +1164,7 @@ def _value_size_param(bitlen:int|None) -> tuple[int,bytes]:
     firstbytemax = bytes([255 if extrabits == 0 else 2**(extrabits+1)-1])
     return bytelen,firstbytemax
 
-def smallestUnknowns(limit:int|None=None, maxbits:int|None=None) \
+def smallestUnknowns(limit:int|None=None,maxbits:int|None=None) \
             -> Generator[FactorRow,None,None]:
     '''
     find smallest factors which are not known to be either prime or composite
@@ -1182,7 +1179,7 @@ def smallestUnknowns(limit:int|None=None, maxbits:int|None=None) \
         for row in cur:
             yield FactorRow(row)
 
-def smallestComposites(limit:int|None=None, maxbits:int|None=None) \
+def smallestComposites(limit:int|None=None,maxbits:int|None=None) \
             -> Generator[FactorRow,None,None]:
     '''
     find smallest factors which are known to be composite and are not factored
@@ -1198,7 +1195,7 @@ def smallestComposites(limit:int|None=None, maxbits:int|None=None) \
         for row in cur:
             yield FactorRow(row)
 
-def smallestProbablePrimes(limit:int|None=None, maxbits:int|None=None) \
+def smallestProbablePrimes(limit:int|None=None,maxbits:int|None=None) \
             -> Generator[FactorRow,None,None]:
     '''
     find smallest factors which are probably prime but not proven yet
@@ -1237,7 +1234,7 @@ class CategoryRow:
     def __init__(self,row):
         if DEBUG_EXTRA:
             assert isinstance(row,tuple)
-            assert len(row) == 10
+            assert len(row) == 8
             assert isinstance(row[0],int)
             assert isinstance(row[1],int)
             assert row[2] is None or isinstance(row[2],int)
@@ -1246,8 +1243,6 @@ class CategoryRow:
             assert isinstance(row[5],bool)
             assert isinstance(row[6],str)
             assert row[7] is None or isinstance(row[7],str)
-            assert isinstance(row[8],datetime)
-            assert isinstance(row[9],datetime)
         self.id: int = row[0]
         self.parent_id: int = row[1]
         self.order_num: int|None = row[2]
@@ -1256,8 +1251,6 @@ class CategoryRow:
         self.is_table: bool = row[5]
         self.info: str = row[6]
         self.expr: str|None = row[7]
-        self.created: datetime = row[8]
-        self.modified: datetime = row[9]
 
     def __repr__(self) -> str:
         return f'<CategoryRow(' \
@@ -1268,25 +1261,23 @@ class CategoryRow:
             f'title={repr(self.title)},' \
             f'is_table={self.is_table},' \
             f'info={repr(self.info)},' \
-            f'expr={repr(self.expr)}' \
-            f'created={repr(self.created)},' \
-            f'modified={repr(self.modified)})>'
+            f'expr={repr(self.expr)})>'
 
-def _str_to_path(s:str) -> tuple[str,...]:
+def _str_to_path(s:str,/) -> tuple[str,...]:
     # convert path string to tuple of path components
     return tuple(p for p in s.strip(' \n\t/').split('/') if p)
 
-def _path_to_str(p:tuple[str,...]):
+def _path_to_str(p:tuple[str,...],/):
     # convert path components to string
     return f'/{'/'.join(p)}'
 
-def _getcati(i:int,con:psycopg.Connection) -> None|CategoryRow:
+def _getcati(i:int,con:psycopg.Connection,/) -> None|CategoryRow:
     # get category by id (from connection)
     cur = con.execute("select * from categories where id = %s;",(i,))
     row = cur.fetchone()
     return None if row is None else CategoryRow(row)
 
-def _getcatp(path:tuple[str,...],con:psycopg.Connection) \
+def _getcatp(path:tuple[str,...],con:psycopg.Connection,/) \
         -> None|list[CategoryRow]:
     # get categogry by path (from connection)
     row = _getcati(0,con)
@@ -1309,7 +1300,7 @@ def _getcatp(path:tuple[str,...],con:psycopg.Connection) \
 
     return ret
 
-def _getcatpi(i:int,con:psycopg.Connection) -> None|list[CategoryRow]:
+def _getcatpi(i:int,con:psycopg.Connection,/) -> None|list[CategoryRow]:
     # full category path details from id
     row = _getcati(i,con)
     if row is None:
@@ -1331,7 +1322,7 @@ def _getcatpi(i:int,con:psycopg.Connection) -> None|list[CategoryRow]:
     # switch order to start at root
     return ret[::-1]
 
-def getCategory(path:int|tuple[str,...]|str) -> None|CategoryRow:
+def getCategory(path:int|tuple[str,...]|str,/) -> None|CategoryRow:
     '''
     find category info by its path/id, empty tuple or 0 is root,
     none if it does not exist
@@ -1346,7 +1337,8 @@ def getCategory(path:int|tuple[str,...]|str) -> None|CategoryRow:
         else:
             return _getcati(path,con)
 
-def getCategoryFullPath(path:int|tuple[str,...]|str) -> None|list[CategoryRow]:
+def getCategoryFullPath(path:int|tuple[str,...]|str,/) \
+        -> None|list[CategoryRow]:
     '''
     find info of a category and all its parents, empty path is root
     none if it does not exist
@@ -1360,7 +1352,7 @@ def getCategoryFullPath(path:int|tuple[str,...]|str) -> None|list[CategoryRow]:
         else:
             return _getcatpi(path,con)
 
-def _getcatpar(i:int,con:psycopg.Connection) -> None|CategoryRow:
+def _getcatpar(i:int,con:psycopg.Connection,/) -> None|CategoryRow:
     # get category parent
     cur = con.execute("select parent_id from categories where id = %s;",(i,))
     row = cur.fetchone()
@@ -1368,7 +1360,7 @@ def _getcatpar(i:int,con:psycopg.Connection) -> None|CategoryRow:
         return None
     return _getcati(row[0],con)
 
-def getCategoryParent(i:int|tuple[str,...]|str) -> None|CategoryRow:
+def getCategoryParent(i:int|tuple[str,...]|str,/) -> None|CategoryRow:
     '''
     find parent of category, parent of root is none,
     non if it does not exist
@@ -1385,13 +1377,13 @@ def getCategoryParent(i:int|tuple[str,...]|str) -> None|CategoryRow:
         else:
             return _getcatpar(i,con)
 
-def _getcatchi(i:int,con:psycopg.Connection) -> list[CategoryRow]:
+def _getcatchi(i:int,con:psycopg.Connection,/) -> list[CategoryRow]:
     # get category children (excluding root as a child of root)
     cur = con.execute("select * from categories where parent_id = %s "
                       "and id <> 0 order by order_num nulls last;",(i,))
     return [CategoryRow(row) for row in cur]
 
-def listCategory(path:int|tuple[str,...]|str) -> None|list[CategoryRow]:
+def listCategory(path:int|tuple[str,...]|str,/) -> None|list[CategoryRow]:
     '''
     list category children (by id)
     empty list if it does not exist
@@ -1409,8 +1401,8 @@ def listCategory(path:int|tuple[str,...]|str) -> None|list[CategoryRow]:
         else:
             return _getcatchi(path,con)
 
-def createCategory(path:tuple[str,...]|str, is_table:bool,
-                   title:str, info:str) -> CategoryRow:
+def createCategory(path:tuple[str,...]|str,/,is_table:bool,
+                   title:str,info:str) -> CategoryRow:
     '''
     creates a subcategory (cannot be root), its parent must exist
     exception if an error occurs
@@ -1448,12 +1440,11 @@ def createCategory(path:tuple[str,...]|str, is_table:bool,
 # prepare queries for the columns that may be updated in categories table
 _setcat_q = dict()
 for column in ('title','info','expr'):
-    query = psycopg.sql.SQL("update categories set {} = %s, "
-                            "modified = default where id = %s;")
+    query = psycopg.sql.SQL("update categories set {} = %s where id = %s;")
     query = query.format(psycopg.sql.Identifier(column))
     _setcat_q[column] = query
 
-def _setcat(path:int|tuple[str,...]|str,value,column:str):
+def _setcat(path:int|tuple[str,...]|str,value,column:str,/):
     if isinstance(path,str):
         path = _str_to_path(path)
 
@@ -1476,25 +1467,25 @@ def _setcat(path:int|tuple[str,...]|str,value,column:str):
         else:
             _dblog_info(f'updated {column} for category id {path}')
 
-def setCategoryInfo(path:int|tuple[str,...]|str, info:str):
+def setCategoryInfo(path:int|tuple[str,...]|str,/,info:str):
     '''
     update the category info string
     '''
     _setcat(path,info,'info')
 
-def setCategoryTitle(path:int|tuple[str,...]|str, title:str):
+def setCategoryTitle(path:int|tuple[str,...]|str,/,title:str):
     '''
     update the category title string
     '''
     _setcat(path,title,'title')
 
-def setCategoryExpr(path:int|tuple[str,...]|str, expr:str|None):
+def setCategoryExpr(path:int|tuple[str,...]|str,/,expr:str|None):
     '''
     update the category expression for generating terms
     '''
     _setcat(path,expr,'expr')
 
-def renameCategory(old:tuple[str,...]|str, new:tuple[str,...]|str):
+def renameCategory(old:tuple[str,...]|str,new:tuple[str,...]|str,/):
     '''
     moves/renames a category
     '''
@@ -1518,12 +1509,12 @@ def renameCategory(old:tuple[str,...]|str, new:tuple[str,...]|str):
             raise FDBException('new path parent does not exist')
 
         con.execute("update categories set parent_id = %s, order_num = null, "
-                    "name = %s, modified = default where id = %s;",
+                    "name = %s where id = %s;",
                     (newdata[-1].id,new[-1],olddata[-1].id))
         con.commit()
         _dblog_info(f'renamed {_path_to_str(old)} to {_path_to_str(new)}')
 
-def deleteCategory(path:tuple[str,...]|str):
+def deleteCategory(path:tuple[str,...]|str,/):
     '''
     delete a category from the database
     exception if it does not exist or has children
@@ -1543,7 +1534,7 @@ def deleteCategory(path:tuple[str,...]|str):
         con.commit()
         _dblog_info(f'deleted {_path_to_str(path)}')
 
-def reorderSubcategories(path:tuple[str,...]|str, order:list[str]):
+def reorderSubcategories(path:tuple[str,...]|str,/,order:list[str]):
     '''
     changes listing order for subcategories
     exception if invalid order data or error occurs
@@ -1569,16 +1560,15 @@ def reorderSubcategories(path:tuple[str,...]|str, order:list[str]):
         con.commit()
         _dblog_info(f'reordered listing for {_path_to_str(path)}')
 
-def _catwalk(row:CategoryRow,path:tuple[str,...],
-             con:psycopg.Connection) \
-                -> Generator[tuple[tuple[str,...],CategoryRow],None,None]:
+def _catwalk(row:CategoryRow,path:tuple[str,...],con:psycopg.Connection,/) \
+        -> Generator[tuple[tuple[str,...],CategoryRow],None,None]:
     # recursively find children
     yield (path,row)
     children = _getcatchi(row.id,con)
     for child in children:
         yield from _catwalk(child,path+(child.name,),con)
 
-def walkCategories(path:tuple[str,...]|str = ()) \
+def walkCategories(path:tuple[str,...]|str=(),/) \
         -> Generator[tuple[tuple[str,...],CategoryRow],None,None]:
     '''
     iterate a categories subtree, default starting at root
@@ -1592,8 +1582,8 @@ def walkCategories(path:tuple[str,...]|str = ()) \
             raise FDBException('path does not exist')
         yield from _catwalk(data[-1],path,con)
 
-def createCategoryNumber(path:tuple[str,...]|str, index:int,
-                         value:int|str, expr:str):
+def createCategoryNumber(path:tuple[str,...]|str,index:int,/,
+                         value:int|str,expr:str):
     '''
     add a number to a category (must exist in database for integers >= 2)
     fs is the factor list passed to addNumber()
@@ -1628,7 +1618,7 @@ def createCategoryNumber(path:tuple[str,...]|str, index:int,
         con.commit()
         _dblog_info(f'created {_path_to_str(path)} index {index}')
 
-def updateCategoryNumber(path:tuple[str,...]|str, index:int, expr:str|None):
+def updateCategoryNumber(path:tuple[str,...]|str,index:int,/,expr:str|None):
     '''
     updates the expression stored for a number
     '''
@@ -1651,7 +1641,7 @@ def updateCategoryNumber(path:tuple[str,...]|str, index:int, expr:str|None):
         if updated:
             _dblog_info(f'updated {_path_to_str(path)} index {index}')
 
-def deleteCategoryNumber(path:tuple[str,...]|str, index:int):
+def deleteCategoryNumber(path:tuple[str,...]|str,index:int,/):
     '''
     remove a number from a category
     also attempts to remove it from the database
@@ -1673,7 +1663,7 @@ def deleteCategoryNumber(path:tuple[str,...]|str, index:int):
             _dblog_info(f'deleted {_path_to_str(path)} index {index}')
             deleteNumberByID(row[0])
 
-def getCategoryNumberInfo(path:tuple[str,...]|str, start:int, count:int) \
+def getCategoryNumberInfo(path:tuple[str,...]|str,/,start:int,count:int) \
         -> list[tuple[int,str,str|NumberRow,list[tuple[int,int,None|int]]]]:
     '''
     gets all number table information for a category
@@ -1717,7 +1707,7 @@ def getCategoryNumberInfo(path:tuple[str,...]|str, start:int, count:int) \
 
         return ret
 
-def findCategoriesWithNumber(i:int) \
+def findCategoriesWithNumber(i:int,/) \
         -> list[tuple[CategoryRow,int,tuple[str,...]]]:
     '''
     list of (row,index,path) for categories containing number id i
@@ -1737,7 +1727,8 @@ def findCategoriesWithNumber(i:int) \
 
         return ret
 
-def findCategoryIndexRange(path:tuple[str,...]|str|int) -> None|tuple[int,int]:
+def findCategoryIndexRange(path:tuple[str,...]|str|int,/) \
+        -> None|tuple[int,int]:
     '''
     find the min and max of the indexes in a category
     '''
@@ -1848,11 +1839,11 @@ def _gen_tkn() -> bytes:
     # 512 bit secure random token
     return secrets.token_bytes(64)
 
-def _hash_b(b:bytes) -> bytes:
+def _hash_b(b:bytes,/) -> bytes:
     # sha512 hash
     return hashlib.sha512(b).digest()
 
-def _hmac(k:bytes,m:bytes) -> bytes:
+def _hmac(k:bytes,m:bytes,/) -> bytes:
     # hash based message authentication code
     # see wikipedia article for details
     # using sha512 (128 byte block, 64 byte hash)
@@ -1864,7 +1855,7 @@ def _hmac(k:bytes,m:bytes) -> bytes:
     y = bytes(byte ^ 0x36 for byte in kp) # k' ^ ipad
     return _hash_b(x + _hash_b(y + m))
 
-def _pbkdf2(pwd:bytes,salt:bytes,iters:int) -> bytes:
+def _pbkdf2(pwd:bytes,salt:bytes,iters:int,/) -> bytes:
     # password based key derivation function
     # see wikipedia article for details (silghtly modified)
     assert iters > 0
@@ -1875,15 +1866,15 @@ def _pbkdf2(pwd:bytes,salt:bytes,iters:int) -> bytes:
         f = bytes(f[i] ^ u[i] for i in range(64))
     return f
 
-def _hash_tkn(tkn:bytes) -> bytes:
+def _hash_tkn(tkn:bytes,/) -> bytes:
     # double sha512 to hash tokens
     return _hash_b(_hash_b(tkn))
 
-def _hash_pwd(pwd:str,salt:bytes) -> bytes:
+def _hash_pwd(pwd:str,salt:bytes,/) -> bytes:
     # pbkdf2 to hash passwords (several iterations to be slightly slow)
     return _pbkdf2(pwd.encode(),salt,PWD_HASH_ITERS)
 
-def createUser(username:str, email:str, pwd:str, fullname:str):
+def createUser(username:str,email:str,pwd:str,fullname:str):
     '''
     create a user account, username and email must be unique
     '''
@@ -1908,7 +1899,7 @@ def createUser(username:str, email:str, pwd:str, fullname:str):
         con.commit()
         _dblog_info(f'created user {username} with email {email}')
 
-def _getuser(u:int|str,con:psycopg.Connection) -> None|UserRow:
+def _getuser(u:int|str,con:psycopg.Connection,/) -> None|UserRow:
     if isinstance(u,int):
         cur = con.execute("select * from users where id = %s;",(u,))
         row = cur.fetchone()
@@ -1922,14 +1913,14 @@ def _getuser(u:int|str,con:psycopg.Connection) -> None|UserRow:
         row = cur.fetchone()
         return None if row is None else UserRow(row)
 
-def getUser(user:str|int) -> None|UserRow:
+def getUser(user:str|int,/) -> None|UserRow:
     '''
     get user details from id, username, or email
     '''
     with _dbcon() as con:
         return _getuser(user,con)
 
-def verifyUser(user:str|int, pwd:str, ip:str|None) -> None|UserRow:
+def verifyUser(user:str|int,pwd:str,ip:str|None) -> None|UserRow:
     '''
     check user login both by id/username/email, none if invalid login
     '''
@@ -1950,7 +1941,7 @@ def verifyUser(user:str|int, pwd:str, ip:str|None) -> None|UserRow:
                         f'(invalid password for {user})')
             return None
 
-def changeUserPassword(user:str|int, new:str, old:str|None):
+def changeUserPassword(user:str|int,new:str,old:str|None):
     '''
     change a password (to new), if old is not none then check it first
     exception if user does not exist or incorrect password
@@ -1982,7 +1973,7 @@ def changeUserPassword(user:str|int, new:str, old:str|None):
         con.commit()
         _dblog_warn(f'changed password for user {row.username}')
 
-def setUserDisabled(user:str, b:bool):
+def setUserDisabled(user:str,b:bool,/):
     '''
     set the disabled status of an account
     '''
@@ -1997,7 +1988,7 @@ def setUserDisabled(user:str, b:bool):
         con.commit()
         _dblog_info(f'set user {user} as {'disabled' if b else 'enabled'}')
 
-def setUserAdmin(user:str, b:bool):
+def setUserAdmin(user:str,b:bool,/):
     '''
     set the admin status of an account
     '''
@@ -2010,13 +2001,13 @@ def setUserAdmin(user:str, b:bool):
         con.commit()
         _dblog_info(f'set user {user} as {'admin' if b else 'not admin'}')
 
-def _getsess(th:bytes,con:psycopg.Connection) -> None|SessionRow:
+def _getsess(th:bytes,con:psycopg.Connection,/) -> None|SessionRow:
     # th = token hash
     cur = con.execute("select * from sessions where token_hash = %s;",(th,))
     row = cur.fetchone()
     return None if row is None else SessionRow(row)
 
-def _delsess(th:bytes,con:psycopg.Connection):
+def _delsess(th:bytes,con:psycopg.Connection,/):
     # th = token hash
     con.execute("delete from sessions where token_hash = %s;",(th,))
     con.commit()
@@ -2037,7 +2028,7 @@ def getSession(token:bytes) -> None|SessionRow:
             _delsess(token_hash,con)
             return None
 
-def updateSession(token:bytes, ip:str|None) -> datetime:
+def updateSession(token:bytes,ip:str|None) -> datetime:
     '''
     update session expiration time, returns new expiration timestamp
     '''
@@ -2050,7 +2041,7 @@ def updateSession(token:bytes, ip:str|None) -> datetime:
         con.commit()
         return exp
 
-def createSession(user:str, ip:str|None) -> str:
+def createSession(user:str,ip:str|None) -> str:
     '''
     create a login session for a user, returns the token for the cookie
     '''

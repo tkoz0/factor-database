@@ -6,7 +6,7 @@ from app.config import PARI_MEM
 
 pari.allocatemem(PARI_MEM)
 
-def prpTest(n:int, k:int = 0) -> bool:
+def prpTest(n:int,k:int=0,/) -> bool:
     '''
     probable prime test with gmpy2
     (bpsw test + up to k miller-rabin tests)
@@ -23,7 +23,7 @@ def prpTest(n:int, k:int = 0) -> bool:
     # gmp subtracts 24 from 2nd arg and runs up to that many miller-rabin tests
     return gmpy2.is_prime(n,24+k) # type:ignore
 
-def primeTest(n:int) -> bool:
+def primeTest(n:int,/) -> bool:
     '''
     provable prime test with pari/gp isprime binding
     use for small numbers that can be tested quickly
