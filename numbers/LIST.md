@@ -15,17 +15,20 @@
 
 # fdb.tkoz.me production plan
 
-- Repunits, bases $ > 36 $
-- Negative base repunits, bases $ -2 \geq b \geq -36 $
-  - possibly more bases
-- Factorial: $ n!-1, n!+1 $
-- Double factorial: $ n!!-1, n!!+1 $
-- Triple factorial: $ n!!!-1, n!!!+1 $
-- Primorial: $ n\#-1, n\#+1 $
-- Compositorial: $ n!/n\#-1, n!/n\#+1 $
-- Near repdigit related
-  - see more details on stdkmd.net/nrr
-  - near-repdigit: AA..AAB, ABB..BB, AA..AABA, ABAA..AA
-  - plateau/depression: ABB..BBA
-  - quasi-repdigit: ABB..BBC
-  - palindrome: AA..AABAA..AA
+- Factorial and related
+  - Factorial: $ n!-1, n!+1 $
+  - Double factorial: $ n!!-1, n!!+1 $
+  - Triple factorial: $ n!!!-1, n!!!+1 $
+  - Primorial: $ n\#-1, n\#+1 $
+  - Compositorial: $ n!/n\#-1, n!/n\#+1 $
+
+- Repunit and related
+  - Repunits, bases $ > 36 $
+  - Negative base repunits, bases $ -2 \geq b \geq -36 $
+    - possibly more bases
+  - Near repdigit related
+    - see more details on stdkmd.net/nrr
+    - near-repdigit: AA..AAB, ABB..BB, AA..AABA, ABAA..AA
+    - plateau/depression: ABB..BBA
+    - quasi-repdigit: ABB..BBC
+    - palindrome: AA..AABAA..AA
