@@ -65,6 +65,7 @@
 - thabit numbers (b+1)\*b^n-1 for base b >= 2 (maybe generalize to b <= -2)
 - both williams and thabit numbers with +1 instead of -1
 - pierpont numbers 2^u*3^v+1, second kind with -1 instead of +1
+- coefficients of powers of (sqrt(2)-1), (sqrt(3)-1), and similar
 
 # ideas from stdkmd.net
 
