@@ -12,6 +12,8 @@ sys.path.append(f'{scriptdir}/..')
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--no-recreate-database',help='skip drop/recreate database',action='store_true')
+parser.add_argument('--no-recreate-config',help='skip recreate config.json',action='store_true')
+
 parser.add_argument('--individual-numbers',help='skip individual (uncategorized) numbers',action='store_true')
 parser.add_argument('--no-users',help='skip creating user accounts',action='store_true')
 parser.add_argument('--no-categories',help='skip creating sample categories',action='store_true')
@@ -19,16 +21,20 @@ parser.add_argument('--no-numbers',help='skip creating sample numbers',action='s
 parser.add_argument('--no-factors',help='skip adding some known factors',action='store_true')
 parser.add_argument('--no-primes',help='disable setting some provable primes',action='store_true')
 parser.add_argument('--no-composites',help='disable setting unknowns to composite',action='store_true')
+
 args = parser.parse_args()
 
 # recreate blank database from the schema
 if not args.no_recreate_database:
-    if os.path.exists('config.json'):
-        os.remove('config.json')
+    if os.path.exists(f'{scriptdir}/../config.json'):
+        os.remove(f'{scriptdir}/../config.json')
     #os.system('sqlite3 database.sqlite3 < schema.sql')
     os.system(f'psql < {scriptdir}/make_sample_db.sql')
     con_str = 'postgres://test_fdb:test_fdb@localhost/test_fdb'
     os.system(f'psql "{con_str}" < {scriptdir}/../database/schema.sql')
+
+# recreate config.json
+if not args.no_recreate_config:
     with open(f'{scriptdir}/../config.json','w') as f:
         json.dump({
             'debug_extra': True,
@@ -37,8 +43,8 @@ if not args.no_recreate_database:
             'session_len_days': 7,
             'renew_sessions': False,
             'min_pwd_len': 3,
-            'prp_bit_lim': 8192,
-            'prove_bit_lim': 512,
+            'prp_bit_lim': 2048,
+            'prove_bit_lim': 256,
             'table_per_page_default': 20,
             'table_per_page_limit': 100,
             'max_content_length': 2**20,
@@ -50,7 +56,7 @@ if not args.no_recreate_database:
             'db_user': 'test_fdb',
             'db_pass': 'test_fdb',
             'db_name': 'test_fdb',
-            'db_con_lim': 8,
+            'db_con_lim': 16,
             'log_to_file': True,
             'admin_email': 'admin@example.com',
             'proxy_fix_mode': None,
@@ -63,6 +69,8 @@ if not args.no_recreate_database:
 import app.database as db
 
 # ==============================================================================
+
+#TODO remove factoring stuff and read factors from precomputed files
 
 def primeSieve(L:int) -> list[int]:
     '''
