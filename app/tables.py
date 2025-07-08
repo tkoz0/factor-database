@@ -292,8 +292,7 @@ async def post_tables_page(path:str):
     elif 'delete_confirm_1' in data:
         msg,code,ok = deleteCategory(path_tup,data['delete_confirm_1'])
 
-    elif 'index0' in data and 'expr0' in data \
-            and 'value0' in data and 'factors0' in data:
+    elif 'index0' in data and 'expr0' in data and 'value0' in data:
         i = 0
         indexes = []
         exprs = []
