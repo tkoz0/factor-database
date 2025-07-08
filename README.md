@@ -82,21 +82,27 @@ TODO needs instructions
 - functions for cleaning up other database data
   - remove unreferenced primes/numbers
   - remove old factorizations (without the smallest prime factor)
+  - remove factors_old table
 - make factors under 2^64 go straight to small primes storage data
   - do not create factor ids for small factors
   - require that submitted factors under 2^64 are prime
+
 - make number page link all factors including old ones
 - make factor page link to numbers it divides
   - also other factors it divides
 - add a "factored" status on factor pages
 - add account button to close all other sessions
 - attempt to submit new factors to factordb.com
-- icons for category/table instead of the text in parenthesis
-  - folder for categories
-  - some kind of list/table for tables
+- remove submissions table
+
 - basic info/description on production
   - store in /numbers scripts and jinja templates for certain types
 - near repdigit repunit related formulas script
+
+- organize sample databases into a few different options
+  - small (possibly with no numbers)
+  - large (with similarities to production)
+  - add some more complete factorization data from factordb.com
 
 # later todos
 
@@ -120,10 +126,6 @@ TODO needs instructions
 - function for removing small factors (64 bit) from the database
 - setup more proper testing (quart: app.test_request_context)
 - setup database triggers if they make sense anywhere
-- organize sample databases into a few different options
-  - small (possibly with no numbers)
-  - large (with similarities to production)
-  - add some more complete factorization data from factordb.com
 
 # feature goals
 
