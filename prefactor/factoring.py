@@ -376,8 +376,9 @@ def prefactor_runner(n:int,
         assert cofactor % f1 == 0
         assert cofactor % f2 == 0
         assert f1 * f2 == cofactor
+        lf1 = len(str(f1))
         if progress_stream:
-            progress_stream.write(f'>>> found factor {f1} with ecm ({time()-t:.3f} sec)\n')
+            progress_stream.write(f'>>> found factor {f1}<{lf1}> with ecm ({time()-t:.3f} sec)\n')
         cofactors_attempt.append(f1)
         cofactors_attempt.append(f2)
 
