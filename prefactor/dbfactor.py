@@ -31,6 +31,7 @@ ecm_threads = 0
 # below is an example for repunits
 # set dry_run = False to actually run the factoring
 # ==============================================================================
+# DO NOT COMMIT CHANGES FOR SPECIFIC NUMBER SEQUENCES (EXAMPLE ONLY)
 
 dry_run = True
 
@@ -41,18 +42,18 @@ assert 0 <= index_beg <= index_end
 base = int(sys.argv[3])
 assert 2 <= base <= 36
 
-def expr(base:int,n:int,/) -> str:
+def expr(n:int,/) -> str:
     # expression to display on factor tables
     assert 2 <= base <= 36 and n >= 0
     return f'\\[2^{{{n}}}-1\\]' if base == 2 \
         else f'\\[{{{base}^{{{n}}}-1\\over{base-1}}}\\]'
 
-def path(base:int,/) -> str:
+def path() -> str:
     # path to the number table
     assert 2 <= base <= 36
     return f'repunit/{base}'
 
-def value(base:int,n:int,/) -> int:
+def value(n:int,/) -> int:
     # integer value
     assert 2 <= base <= 36 and n >= 0
     return sequences.repunit(base,n)
@@ -63,16 +64,14 @@ for n in range(index_beg,index_end):
     if not dry_run:
         sys.stderr.write(f'\n\033[94mFACTORING INDEX {n}\033[0m\n')
 
-    v = value(base,n)
+    v = value(n)
 
     # number details
     output = {
         'index': n,
         'value': v,
-        # TODO adjust expression to display on factor tables
-        'expr': expr(base,n),
-        # TODO adjust table path
-        'path': path(base)
+        'expr': expr(n),
+        'path': path()
     }
 
     # (partial) factorization
@@ -98,6 +97,8 @@ for n in range(index_beg,index_end):
 
     # output
     if dry_run:
+        output['bit_size'] = v.bit_length()
+        output['digit_length'] = len(str(v))
         print(json.dumps(output,indent=4))
     else:
         print(json.dumps(output,separators=(',',':')))
