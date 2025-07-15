@@ -469,6 +469,40 @@ def setFactorPrime(i:int,test:bool,/):
     for num_row in num_rows:
         completeNumber(num_row.id)
 
+def setFactorProbable(i:int,test:bool,/):
+    '''
+    sets a factor (by ID) as probable prime
+    exception if an error occurs
+    test = run prp test to check against
+    '''
+    with _dbcon() as con:
+        row = _getfaci(i,con)
+        if row is None:
+            raise FDBException(f'factor id {i} does not exist in database')
+        if row.value.bit_length() <= PROVE_BIT_LIM:
+            raise FDBException(f'factor is small enough for primality proving')
+
+        was_prime = (row.primality == Primality.PRIME)
+
+        if test and not prpTest(row.value):
+            raise FDBException(f'factor id {i} is actually composite')
+        con.execute("update factors set primality = %s where id = %s;",
+                    (Primality.PROBABLE,i))
+
+        con.commit()
+        _dblog_info(f'factor id {i} set to probable')
+
+        # uncomplete numbers if switching from prime
+        # (not sure why this would ever happen)
+        num_rows: list[NumberRow] = []
+        if was_prime:
+            _getnums_withfac(num_rows,row,con)
+
+        for num_row in num_rows:
+            con.execute("update numbers set complete = false where id = %s;",
+                        (num_row.id,))
+        con.commit()
+
 def setFactorComposite(i:int,test:bool,/):
     '''
     sets a factor (by ID) as proven composite

@@ -20,5 +20,5 @@ for line in tqdm(sys.stdin.read().splitlines()):
     if row.primality == db.Primality.PRIME:
         continue
     assert row.primality == db.Primality.PROBABLE
-    tqdm.write(f'factor id {i}')
+    tqdm.write(f'factor id {i}',sys.stderr)
     db.setFactorPrime(i,False)
