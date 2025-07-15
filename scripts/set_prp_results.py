@@ -13,7 +13,8 @@ sys.path.append(f'{scriptdir}/..')
 import app.database as db
 
 for line in tqdm(sys.stdin.read().splitlines()):
-    i,s = map(int,line.split())
+    i,s = line.split()
+    i = int(i)
     row = db.getFactorByID(i)
     assert row is not None
     if row.primality != db.Primality.UNKNOWN:
