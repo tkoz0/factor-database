@@ -354,6 +354,7 @@ def prefactor_runner(n:int,
 
         # ecm using selected parameter choices
         f1,f2,num_curves = 0,0,0
+        index_b1_curves = 0 # count b1 choices that found no factors
         for b1,curves in ecm_b1_curves:
             t = time()
             if progress_stream:
@@ -361,6 +362,10 @@ def prefactor_runner(n:int,
             f1,f2,num_curves = ecm_runner(cofactor,curves,b1,threads=ecm_threads,progress_stream=progress_stream)
             if f1 != 0:
                 break
+            index_b1_curves += 1
+
+        # do not rerun parameters which found no factors
+        ecm_b1_curves = ecm_b1_curves[index_b1_curves:]
 
         if f1 == 0: # no factor found
             if progress_stream:
