@@ -121,6 +121,8 @@ def multiFactorial(f:int,n:int,/) -> int:
 
 def primorial(n:int,/) -> int:
     #TODO cache
+    if n == 0:
+        return 1
     assert n > 0
     ret = 1
     i = 1
@@ -131,6 +133,8 @@ def primorial(n:int,/) -> int:
 
 def compositorial(n:int,/) -> int:
     #TODO cache
+    if n == 0:
+        return 1
     assert n > 0
     ret = 1
     i = 1
