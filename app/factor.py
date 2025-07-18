@@ -66,6 +66,13 @@ def updatePrimality(i:int,status:str,run_prp:str) -> tuple[str,int,bool]:
         except Exception as e:
             return (f'Failed to update status: {e}',400,False)
 
+    elif status == '1':
+        try:
+            app.database.setFactorProbable(i,run_prp_b)
+            return ('Factor successfully set as probable prime.',200,True)
+        except Exception as e:
+            return (f'Failed to update status: {e}',400,False)
+
     elif status == '2':
         try:
             app.database.setFactorPrime(i,run_prp_b)
