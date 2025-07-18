@@ -25,8 +25,17 @@
 {% endif %}
 
 {% if exists %}
+
+{# category/table text content #}
+{% if preview %}
+<p class="admin_preview_marker">(note: the title and content is a preview)</p>
+<h2>{{preview_title}}</h2>
+{{preview_info}}
+<p class="admin_preview_marker">(end of preview)</p>
+{% else %}
 <h2>{{title}}</h2>
 {{info}}
+{% endif %}
 
 {% if is_table %}
 <h2>Table</h2>
@@ -197,10 +206,35 @@ count_2.addEventListener('input',() => nav_calc_2());
 <form method="post"><fieldset>
     <legend>change title or info text</legend>
     <span>make sure info is proper html</span><br />
+{% if preview %}
+    <input type="text" name="title" value="{{preview_title|e}}" />
+    <textarea name="info" rows="10">{{preview_info|e}}</textarea>
+{% else %}
     <input type="text" name="title" value="{{title|e}}" />
     <textarea name="info" rows="10">{{info|e}}</textarea>
-    <input type="submit" value="edit title/info" />
+{% endif %}
+    <input id="title_info_submit" type="submit" value="preview title/info change" />
+    <input id="preview_checkbox" type="checkbox" name="preview" value="on" /> preview
 </fieldset></form>
+<script type="text/javascript">
+var title_info_submit = document.querySelector('#title_info_submit');
+var preview_checkbox = document.querySelector('#preview_checkbox');
+preview_checkbox.addEventListener('change',() => {
+    let checked = !(preview_checkbox.value === 'on');
+    console.log('new value',checked);
+    preview_checkbox.value = checked ? 'on' : 'off';
+    preview_checkbox.checked = checked;
+    title_info_submit.value = (checked ? 'preview' : 'submit') + ' title/info change';
+    console.log(preview_checkbox.value);
+    console.log(preview_checkbox.checked);
+});
+// ensure preview is always checked by default
+(function (){
+    preview_checkbox.value = 'on';
+    preview_checkbox.checked = true;
+    title_info_submit.value = 'preview title/info change';
+})();
+</script>
 {% if not is_root %}
 <form method="post"><fieldset>
     <legend>rename</legend>

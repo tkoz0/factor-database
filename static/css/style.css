@@ -314,3 +314,8 @@ body {
 #admin_status_table td {
     border: 1px solid black;
 }
+
+.admin_preview_marker {
+    background: orange;
+    text-align: center;
+}

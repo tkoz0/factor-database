@@ -161,17 +161,25 @@ def reorderSubcategories(p:tuple[str,...],data:str) -> tuple[str,int,bool]:
     except Exception as e:
         return (f'Failed to reorder: {e}',400,False)
 
-def updateDetails(p:tuple[str,...],title:str,info:str) -> tuple[str,int,bool]:
+def updateDetails(p:tuple[str,...],title:str,info:str,preview:bool) \
+        -> tuple[str,int,bool,dict]:
     '''
     process form for editing title/info
     returns (msg,code,ok)
     '''
-    try:
-        app.database.setCategoryTitle(p,title)
-        app.database.setCategoryInfo(p,info)
-        return ('Successfully updated information.',200,True)
-    except Exception as e:
-        return (f'Failed to update: {e}',400,False)
+    if preview:
+        return (f'Previewing changes',200,True,{
+            'preview': True,
+            'preview_title': title,
+            'preview_info': info
+        })
+    else:
+        try:
+            app.database.setCategoryTitle(p,title)
+            app.database.setCategoryInfo(p,info)
+            return ('Successfully updated information.',200,True,{})
+        except Exception as e:
+            return (f'Failed to update: {e}',400,False,{})
 
 def createSubcategory(p:tuple[str,...],newname:str,cattype:str,newtitle:str) \
         -> tuple[str,int,bool]:
@@ -265,6 +273,9 @@ async def post_tables_page(path:str):
     if not user.is_admin:
         return await app.util.blank403(f'/tables/{path}')
 
+    # stores extra args that may be used for jinja template
+    page_args = dict()
+
     # logged in as admin so actions are safe to perform from here
     table_info = getTableInfo(path)
     if table_info['exists']:
@@ -278,7 +289,10 @@ async def post_tables_page(path:str):
         msg,code,ok = reorderSubcategories(path_tup,data['reorder_list'])
 
     elif 'title' in data and 'info' in data:
-        msg,code,ok = updateDetails(path_tup,data['title'],data['info'])
+        msg,code,ok,page_args = updateDetails(path_tup,
+                                              data['title'],
+                                              data['info'],
+                                              'preview' in data)
 
     elif 'newcat_title' in data and 'newcat_name' in data \
             and 'subcat_type' in data:
@@ -316,5 +330,5 @@ async def post_tables_page(path:str):
         await quart.render_template('tables.jinja',page='tables',
                                     post_ok=ok,post_msg=msg,
                                     **app.util.getPageInfo(),
-                                    **getTableInfo(path)),
+                                    **getTableInfo(path),**page_args),
                                     code)
