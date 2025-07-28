@@ -57,11 +57,13 @@ body {
 .navlink {
     padding: 4px;
     display: inline-block;
+    font-family: monospace;
 }
 
 .current_page {
     padding: 4px;
     background: lightgray;
+    font-family: monospace;
 }
 
 .navlink:hover {
