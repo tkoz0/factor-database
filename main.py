@@ -3,27 +3,31 @@ import sys
 
 import app.database as db
 
-from app.account import bp as auth_blueprint
-from app.api import bp as api_blueprint
-from app.error import bp as error_blueprint
-from app.factor import bp as factor_blueprint
-from app.root import bp as root_blueprint
-from app.tables import bp as tables_blueprint
-from app.number import bp as number_blueprint
+from app.pages.account import bp as bpAccount
+from app.pages.api import bp as bpApi
+from app.pages.error import bp as bpError
+from app.pages.factor import bp as bpFactor
+from app.pages.number import bp as bpNumber
+from app.pages.root import bp as bpRoot
+from app.pages.tables import bp as bpTables
+
 from app.config import MAX_CONTENT_LENGTH, PROXY_FIX_MODE, PROXY_FIX_HOPS
+
+# note that "app" is both the package name and the variable name
+# this has not caused any problems yet
 
 app = quart.Quart(__name__)
 app.jinja_env.lstrip_blocks = True
 app.jinja_env.trim_blocks = True
 app.config['MAX_CONTENT_LENGTH'] = MAX_CONTENT_LENGTH
 
-app.register_blueprint(api_blueprint)
-app.register_blueprint(auth_blueprint)
-app.register_blueprint(error_blueprint)
-app.register_blueprint(factor_blueprint)
-app.register_blueprint(root_blueprint)
-app.register_blueprint(tables_blueprint)
-app.register_blueprint(number_blueprint)
+app.register_blueprint(bpAccount)
+app.register_blueprint(bpApi)
+app.register_blueprint(bpError)
+app.register_blueprint(bpFactor)
+app.register_blueprint(bpNumber)
+app.register_blueprint(bpRoot)
+app.register_blueprint(bpTables)
 
 @app.after_serving
 async def dbcon_close():
@@ -43,8 +47,10 @@ if __name__ == '__main__':
     note: jinja cache defaults to 50 templates
     '''
 
-# for production, apply proxy fix middleware
+# for production, apply proxy fix middleware if needed
 elif PROXY_FIX_MODE is not None:
     from hypercorn.middleware import ProxyFixMiddleware
-    app = ProxyFixMiddleware(app,mode=PROXY_FIX_MODE, # type:ignore
+    assert PROXY_FIX_MODE in ('legacy','modern')
+    app = ProxyFixMiddleware(app,
+                             mode=PROXY_FIX_MODE,
                              trusted_hops=PROXY_FIX_HOPS)

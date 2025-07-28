@@ -1,7 +1,6 @@
 import quart
 
 import app.util
-import app.config
 
 bp = quart.Blueprint('root',__name__)
 

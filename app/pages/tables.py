@@ -1,9 +1,7 @@
 import quart
 
 import app.util
-import app.error
 import app.database
-import app.maths
 from app.config import DEBUG_EXTRA, TABLE_PER_PAGE_DEFAULT, TABLE_PER_PAGE_LIMIT
 
 bp = quart.Blueprint('tables',__name__)
