@@ -19,7 +19,7 @@ from app.config import \
     LOG_TO_FILE, DEBUG_EXTRA, DB_CON_LIM, \
     DB_HOST, DB_PORT, DB_USER, DB_PASS, DB_NAME
 
-from app.maths import prpTest, primeTest
+from app.utils.primetest import prpTest, primeTest
 
 scriptdir = os.path.dirname(__file__)
 

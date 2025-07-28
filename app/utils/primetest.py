@@ -21,6 +21,8 @@ def prpTest(n:int,k:int=0,/) -> bool:
     '''
     assert k >= 0
     # gmp subtracts 24 from 2nd arg and runs up to that many miller-rabin tests
+    # this behavior is dependent on gmp version
+    # in testing/production this was found to run a single test when k==0
     return gmpy2.is_prime(n,24+k) # type:ignore
 
 def primeTest(n:int,/) -> bool:
@@ -39,4 +41,5 @@ def primeTest(n:int,/) -> bool:
     (768 bit primes ~2sec)
     (1024 bit primes ~2sec) (fails with 8M pari stack, seems fine with 16M)
     '''
+    # pari returns 0 or 1 for this
     return bool(pari.isprime(n))

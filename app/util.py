@@ -1,5 +1,4 @@
 import math
-
 import quart
 
 import app.database
