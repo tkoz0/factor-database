@@ -1,12 +1,18 @@
 import quart
 
-import app.util
 import app.database
-from app.config import DEBUG_EXTRA, TABLE_PER_PAGE_DEFAULT, TABLE_PER_PAGE_LIMIT
+from app.utils.session import getUser
+from app.utils.errorPage import basicErrorPage
+from app.utils.factorData import factorsHtml
+from app.utils.pageData import basePageData
+from app.config import \
+    DEBUG_EXTRA, \
+    TABLE_PER_PAGE_DEFAULT, \
+    TABLE_PER_PAGE_LIMIT
 
 bp = quart.Blueprint('tables',__name__)
 
-def getTableInfo(path_str:str):
+def tableInfo(path_str:str):
     '''
     generate table information for tables.jinja template
     '''
@@ -28,6 +34,7 @@ def getTableInfo(path_str:str):
     path = () if path_str == '' else tuple(path_str.split('/'))
     path_str = '/'.join(path)
     cat_rows = app.database.getCategoryFullPath(path)
+
     if cat_rows is None:
         return {
             'path': path_str,
@@ -59,6 +66,7 @@ def getTableInfo(path_str:str):
         link_paths = []
         link_titles = []
         link_names = []
+
         for cat_row in cat_rows:
             link_paths.append('/tables' if link_paths == []
                               else f'{link_paths[-1]}/{cat_row.name}')
@@ -81,7 +89,7 @@ def getTableInfo(path_str:str):
                 index,
                 expr,
                 row_or_value if isinstance(row_or_value,str)
-                    else app.util.makeFactorsHTML(factors),
+                    else factorsHtml(factors),
                 None if isinstance(row_or_value,str) else row_or_value.id,
                 True if isinstance(row_or_value,str) else row_or_value.complete
             )
@@ -92,10 +100,12 @@ def getTableInfo(path_str:str):
     else:
         child_rows = app.database.listCategory(cat_row.id)
         assert child_rows is not None, 'internal error'
+
         child_titles = []
         child_links = []
         child_is_table = []
         child_index_ranges = []
+
         for child_row in child_rows:
             child_titles.append(child_row.name if child_row.title == ''
                                 else child_row.title)
@@ -106,6 +116,7 @@ def getTableInfo(path_str:str):
             child_is_table.append(child_row.is_table)
             child_index_ranges.append(
                 app.database.findCategoryIndexRange(child_row.id))
+
         ret['children'] = zip(child_titles,child_links,
                               child_is_table,child_index_ranges)
         ret['children_len'] = len(child_rows)
@@ -121,30 +132,31 @@ def getTableInfo(path_str:str):
 #=============
 
 @bp.get('/tables')
-async def get_tables_root():
-    return await get_tables_page('')
+async def tablesGetRoot():
+    return await tablesGet('')
 
 @bp.get('/tables/')
-async def get_tables_root2():
-    return await get_tables_page('')
+async def tablesGetRootWithSlash():
+    return await tablesGet('')
 
 @bp.get('/tables/<path:path>')
-async def get_tables_page(path:str):
-    return await quart.render_template('tables.jinja',page='tables',
-                                       **app.util.getPageInfo(),
-                                       **getTableInfo(path))
+async def tablesGet(path:str):
+    return await quart.render_template('tables.jinja',
+                                       page='tables',
+                                       **basePageData(),
+                                       **tableInfo(path))
 
 #==============
 # post requests
 #==============
 
 @bp.post('/tables')
-async def post_tables_root():
-    return await post_tables_page('')
+async def tablesPostRoot():
+    return await tablesPost('')
 
 @bp.post('/tables/')
-async def post_tables_root2():
-    return await post_tables_page('')
+async def tablesPostRootWithSlash():
+    return await tablesPost('')
 
 def reorderSubcategories(p:tuple[str,...],data:str) -> tuple[str,int,bool]:
     '''
@@ -258,24 +270,24 @@ def removeNumbers(p:tuple[str,...],indexes:str,confirm:str) \
         return (f'Failed to delete: {e}',400,False)
 
 @bp.post('/tables/<path:path>')
-async def post_tables_page(path:str):
+async def tablesPost(path:str):
     data = await quart.request.form
-    user = app.util.getUser()
+    user = getUser()
     code = 200
     ok = False
     path_tup = () if path == '' else tuple(path.split('/'))
 
     if user is None:
-        return await app.util.blank401(f'/tables/{path}')
+        return await basicErrorPage(f'/tables/{path}',401)
 
     if not user.is_admin:
-        return await app.util.blank403(f'/tables/{path}')
+        return await basicErrorPage(f'/tables/{path}',403)
 
     # stores extra args that may be used for jinja template
     page_args = dict()
 
     # logged in as admin so actions are safe to perform from here
-    table_info = getTableInfo(path)
+    table_info = tableInfo(path)
     if table_info['exists']:
         cat_rows = table_info['cat_rows']
         assert isinstance(cat_rows,list), 'internal error'
@@ -322,11 +334,11 @@ async def post_tables_page(path:str):
                                     data['delete_confirm_2'])
 
     else:
-        return await app.util.blank400(f'/tables/{path}')
+        return await basicErrorPage(f'/tables/{path}',400)
 
     return quart.Response(
         await quart.render_template('tables.jinja',page='tables',
                                     post_ok=ok,post_msg=msg,
-                                    **app.util.getPageInfo(),
-                                    **getTableInfo(path),**page_args),
+                                    **basePageData(),
+                                    **tableInfo(path),**page_args),
                                     code)

@@ -1,7 +1,7 @@
 import json
 import quart
 
-import app.util
+from app.utils.pageData import basePageData
 
 bp = quart.Blueprint('api',__name__)
 
@@ -16,8 +16,9 @@ def jsonResponse(obj,code=200,/) -> quart.Response:
 
 @bp.get('/api')
 async def apiGet():
-    return await quart.render_template('api.jinja',page='api',
-                                       **app.util.getPageInfo())
+    return await quart.render_template('api.jinja',
+                                       page='api',
+                                       **basePageData())
 
 @bp.post('/api')
 async def apiPost():

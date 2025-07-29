@@ -94,6 +94,7 @@ TODO needs instructions
 - add account button to close all other sessions
 - attempt to submit new factors to factordb.com
 - remove submissions table
+- rework the numbers per page stuff for browsing tables
 
 - basic info/description on production
   - store in /numbers scripts and jinja templates for certain types

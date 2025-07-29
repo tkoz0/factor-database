@@ -1,18 +1,26 @@
 import quart
 
 import app.database
-import app.util
+from app.utils.pageData import basePageData
+from app.utils.session import getSession
 from app.config import RENEW_SESSIONS
 
 bp = quart.Blueprint('account',__name__)
 
 @bp.get('/login')
-async def login_form():
-    return await quart.render_template('login_form.jinja',page='login',
-                                       **app.util.getPageInfo())
+async def loginGet():
+    '''
+    login form page
+    '''
+    return await quart.render_template('login_form.jinja',
+                                       page='login',
+                                       **basePageData())
 
 @bp.post('/login')
-async def login_post():
+async def loginPost():
+    '''
+    login attempt by post request
+    '''
     data = await quart.request.form
     code = 200
     ok = False
@@ -46,21 +54,30 @@ async def login_post():
         code = 400
 
     ret = quart.Response(
-        await quart.render_template('login_post.jinja',page='login',
-                                    post_ok=ok,post_msg=msg,
-                                    **app.util.getPageInfo(token)),code)
+        await quart.render_template('login_post.jinja',
+                                    page='login',
+                                    post_ok=ok,
+                                    post_msg=msg,
+                                    **basePageData(token)),
+        code)
+
     if token is not None:
-        session = app.util.getSession(token)
+        session = getSession(token)
         assert session is not None, 'internal error'
         ret.set_cookie('token',token,expires=session.expires)
+
     return ret
 
 @bp.get('/account')
-async def account_page():
-    session = app.util.getSession()
+async def accountGet():
+    '''
+    account details page
+    '''
+    session = getSession()
     token = None
     new_sess_exp = None
     exp_time = None
+
     if session is not None: # user logged in
         exp_time = session.expires.replace(microsecond=0)
         try:
@@ -73,19 +90,26 @@ async def account_page():
                     .replace(microsecond=0)
         except:
             pass
+
     ret = quart.Response(
-        await quart.render_template('account.jinja',page='account',
+        await quart.render_template('account.jinja',
+                                    page='account',
                                     exp_time=exp_time,
-                                    **app.util.getPageInfo()))
+                                    **basePageData()))
+
     if token is not None:
         ret.set_cookie('token',token,expires=new_sess_exp)
+
     return ret
 
 @bp.post('/account')
-async def account_post():
+async def accountPost():
+    '''
+    post request to make changes to account
+    '''
     data = await quart.request.form
     code = 200
-    session = app.util.getSession()
+    session = getSession()
     ok = False
     key = None
 
@@ -136,15 +160,21 @@ async def account_post():
     return quart.Response(
         await quart.render_template('account.jinja',page='account',
                                     post_ok=ok,post_msg=msg,api_key=key,
-                                    **app.util.getPageInfo()),code)
+                                    **basePageData()),code)
 
 @bp.route('/signup')
-async def signup_detail():
+async def signup():
+    '''
+    signup page
+    '''
     return await quart.render_template('signup.jinja',page='signup',
-                                       **app.util.getPageInfo())
+                                       **basePageData())
 
 @bp.route('/logout')
 async def logout():
+    '''
+    logout user
+    '''
     token = quart.request.cookies.get('token')
     try:
         token_bytes = bytes.fromhex(token) # type:ignore
@@ -153,6 +183,6 @@ async def logout():
         pass
     ret = quart.Response(
         await quart.render_template('logout.jinja',page='logout',
-                                    **app.util.getPageInfo()))
+                                    **basePageData()))
     ret.delete_cookie('token')
     return ret

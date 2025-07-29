@@ -1,42 +1,48 @@
 import quart
 
-import app.util
+from app.utils.pageData import basePageData
 
 bp = quart.Blueprint('root',__name__)
 
 @bp.route('/')
 async def root():
-    return await quart.render_template('home.jinja',page='home',
-                                       **app.util.getPageInfo())
+    return await quart.render_template('home.jinja',
+                                       page='home',
+                                       **basePageData())
 
 @bp.route('/index')
-async def root2():
+async def rootIndex():
     return await root()
 
 @bp.route('/about')
 async def about():
-    return await quart.render_template('about.jinja',page='about',
-                                       **app.util.getPageInfo())
+    return await quart.render_template('about.jinja',
+                                       page='about',
+                                       **basePageData())
 
 @bp.route('/guide')
 async def guide():
-    return await quart.render_template('guide.jinja',page='guide',
-                                       **app.util.getPageInfo())
+    return await quart.render_template('guide.jinja',
+                                       page='guide',
+                                       **basePageData())
 
 @bp.route('/privacy')
 async def privacy():
-    return await quart.render_template('privacy.jinja',page='privacy',
-                                       **app.util.getPageInfo())
+    return await quart.render_template('privacy.jinja',
+                                       page='privacy',
+                                       **basePageData())
 
 @bp.route('/stats')
 async def stats():
-    return await quart.render_template('stats.jinja',page='stats',
-                                       **app.util.getPageInfo())
+    return await quart.render_template('stats.jinja',
+                                       page='stats',
+                                       **basePageData())
 
 @bp.route('/recent')
 async def recent():
-    return await quart.render_template('recent.jinja',page='recent',
-                                       **app.util.getPageInfo())
+    return await quart.render_template('recent.jinja',
+                                       page='recent',
+                                       **basePageData())
 
 @bp.route('/robots.txt')
 async def robots():

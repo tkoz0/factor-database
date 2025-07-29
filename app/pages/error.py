@@ -1,11 +1,13 @@
 import quart
 
+from app.utils.errorPage import basicErrorPage
+
 bp = quart.Blueprint('error',__name__)
 
 @bp.route('/<path:path>')
 async def otherPage(path):
     # any page not matching a programmed route should give 404
-    return await quart.render_template('404.jinja',path=path),404
+    return await basicErrorPage(path,404)
 
 # info codes
 # (usually not used)
