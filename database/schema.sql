@@ -88,6 +88,9 @@ create index factors_old_f2_index on factors_old(f2_id);
 
 -- category is either a directory listing of subcategories
 -- or a table listing a number sequence
+--
+-- TODO change is_table to a more general type
+-- - maybe also support links to other tables
 create table categories
 (
     id bigserial primary key unique not null,
@@ -177,19 +180,4 @@ create index sessions_user_id_index on sessions(user_id);
 -- factor submissions
 -- ==================
 
--- submitted results, should remove once necessary data is collected
-create table submissions
-(
-    id bigserial primary key unique not null,
-    fac_id bigint,
-    user_id bigint,
-    text_name text not null,
-    text_factors text not null,
-    text_details text not null,
-    submitted timestamp default timezone('utc',now()) not null,
-    from_ip inet,
-    foreign key (fac_id) references factors(id),
-    foreign key (user_id) references users(id)
-);
-create index submissions_user_index on submissions(user_id);
-create index submissions_facid_index on submissions(fac_id);
+-- TODO rework user submitted data

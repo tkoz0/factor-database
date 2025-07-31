@@ -102,19 +102,8 @@ is found, which occasionally happens with ECM.</p>
 {% if primality == -1 or (primality == 0 and not factor1_exists) %}
 <h2>Report Factors</h2>
 <form method="post" id="report_factor">
-    <p>Enter factors here. In order to accept results, the server must find a valid factor here.</p>
-    <textarea name="factors" placeholder="example:&#10;241573142393627673576957439049&#10;45994811347886846310221728895223034301839" rows="4"></textarea>
-    <p>Enter relevant details such as software/hardware used, log file portions,
-    B1 and sigma for GMP-ECM, NFS polynomial, total runtime, etc.
-    This is optional but preferred to have.</p>
-    <textarea name="details" placeholder="example 1: GMP-ECM 7.0.5, B1=250000, sigma=1:4091186291, Intel i7-3770, 24GB DDR3, Windows 10&#10;example 2: cado-nfs, Dell R630, 2x Intel Xeon E5-2698v4, 256GB DDR4, Ubuntu Server 24.04" rows="4"></textarea>
-    <p>Enter your name or leave blank to stay anonymous.</p>
-    {% if logged_in %}
-        <input type="text" name="name" value="{{fullname|e}}" placeholder="name" />
-    {% else %}
-        <input type="text" name="name" value="" placeholder="name" />
-    {% endif %}
-    <p></p>
+    <p>Enter factors below. To accept results, a nontrivial divisor must be found.</p>
+    <textarea name="factors" rows="4"></textarea>
     <input type="submit" value="click here to report factorization" />
 </form>
 {% endif %}

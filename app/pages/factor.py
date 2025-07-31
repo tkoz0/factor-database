@@ -89,8 +89,7 @@ def updatePrimality(i:int,status:str,run_prp:str) -> tuple[str,int,bool]:
     else:
         return ('Invalid primality status.',400,False)
 
-def insertFactors(i:int,u:None|dbUser.UserRow,name:str,
-                  factors:str,details:str) -> tuple[str,int,bool]:
+def insertFactors(i:int,u:None|dbUser.UserRow,factors:str) -> tuple[str,int,bool]:
     '''
     process form for inserting factors
     returns (msg,code,ok)
@@ -99,9 +98,7 @@ def insertFactors(i:int,u:None|dbUser.UserRow,name:str,
     if row is None:
         return ('Invalid factor ID.',404,False)
 
-    if len(factors) > MAX_FACTORS_LEN \
-            or len(details) > MAX_DETAILS_LEN \
-            or len(name) > 64:
+    if len(factors) > MAX_FACTORS_LEN:
         return ('Submission length limit exceeded.',400,False)
 
     # identify numbers in the submission
@@ -132,8 +129,8 @@ def insertFactors(i:int,u:None|dbUser.UserRow,name:str,
         except FdbException:
             pass
 
-    user_id = None if u is None else u.id
-    ip = quart.request.remote_addr
+    #user_id = None if u is None else u.id
+    #ip = quart.request.remote_addr
 
     if count_found > 0:
         return ('Factorization successful.',200,True)
@@ -157,9 +154,8 @@ async def factorPost(i:int):
 
         msg,code,ok = updatePrimality(i,data['primality'],data['run_prp'])
 
-    elif 'factors' in data and 'details' in data and 'name' in data:
-        msg,code,ok = insertFactors(i,user,data['name'],
-                                    data['factors'],data['details'])
+    elif 'factors' in data:
+        msg,code,ok = insertFactors(i,user,data['factors'])
 
     else:
         return await basicErrorPage(f'/factor/{i}',400)
