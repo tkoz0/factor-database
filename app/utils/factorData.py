@@ -1,6 +1,6 @@
 import math
 
-from app.database import Primality
+from app.database.numbers import Primality
 
 # opening bracket to use
 _f_open = {

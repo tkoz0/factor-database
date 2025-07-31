@@ -1,5 +1,9 @@
 import quart
 
+import app.database.numbers as dbNum
+import app.database.categories as dbCat
+from app.database.numbers import Primality
+
 from app.utils.pageData import basePageData
 from app.utils.factorData import \
     factoringProgress, \
@@ -7,8 +11,6 @@ from app.utils.factorData import \
     factorsHtml
 from app.utils.session import getUser
 from app.utils.errorPage import basicErrorPage
-import app.database as db
-from app.database import Primality
 
 bp = quart.Blueprint('numbers',__name__)
 
@@ -16,16 +18,16 @@ def numberInfo(i:int):
     '''
     gets details for number.jinja template
     '''
-    row = db.getNumberByID(i)
+    row = dbNum.getNumberById(i)
     if row is None:
         return { 'exists': False, 'number_id': i }
 
     cof_row = None if row.cof_id is None \
-        else db.getFactorByID(row.cof_id)
+        else dbNum.getFactorById(row.cof_id)
     number_value = str(row.value)
-    factors_list = db.getNumberFactorizationByID(i)
+    factors_list = dbNum.getNumberFactorizationById(i)
     assert factors_list is not None, 'internal error'
-    cats = db.findCategoriesWithNumber(i)
+    cats = dbCat.findCategoriesWithNumber(i)
     cats_list = [
         (row.title if row.title else row.name,
         index,'/'.join(path))
@@ -69,7 +71,7 @@ def completeNumber(i:int) -> tuple[str,int,bool]:
     admin form for number completion
     '''
     try:
-        if db.completeNumber(i):
+        if dbNum.completeNumber(i):
             return ('Number factorization completed.',200,True)
         else:
             return ('Number optimized, incomplete.',200,True)

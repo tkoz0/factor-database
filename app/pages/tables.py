@@ -1,6 +1,7 @@
 import quart
 
-import app.database
+import app.database.categories as dbCat
+
 from app.utils.session import getUser
 from app.utils.errorPage import basicErrorPage
 from app.utils.factorData import factorsHtml
@@ -33,7 +34,7 @@ def tableInfo(path_str:str):
 
     path = () if path_str == '' else tuple(path_str.split('/'))
     path_str = '/'.join(path)
-    cat_rows = app.database.getCategoryFullPath(path)
+    cat_rows = dbCat.getCategoryFullPath(path)
 
     if cat_rows is None:
         return {
@@ -83,7 +84,7 @@ def tableInfo(path_str:str):
     ret['info'] = cat_row.info
 
     if cat_row.is_table:
-        tabledata = app.database.getCategoryNumberInfo(path,start,count)
+        tabledata = dbCat.getCategoryNumberInfo(path,start,count)
         ret['table'] = [
             (
                 index,
@@ -95,10 +96,10 @@ def tableInfo(path_str:str):
             )
             for index,expr,row_or_value,factors in tabledata
         ]
-        ret['index_range'] = app.database.findCategoryIndexRange(cat_row.id)
+        ret['index_range'] = dbCat.findCategoryIndexRange(cat_row.id)
 
     else:
-        child_rows = app.database.listCategory(cat_row.id)
+        child_rows = dbCat.listCategory(cat_row.id)
         assert child_rows is not None, 'internal error'
 
         child_titles = []
@@ -115,7 +116,7 @@ def tableInfo(path_str:str):
                 child_links.append(f'/tables/{path_str}/{child_row.name}')
             child_is_table.append(child_row.is_table)
             child_index_ranges.append(
-                app.database.findCategoryIndexRange(child_row.id))
+                dbCat.findCategoryIndexRange(child_row.id))
 
         ret['children'] = zip(child_titles,child_links,
                               child_is_table,child_index_ranges)
@@ -166,7 +167,7 @@ def reorderSubcategories(p:tuple[str,...],data:str) -> tuple[str,int,bool]:
     if data == '':
         return ('List order not changed.',200,True)
     try:
-        app.database.reorderSubcategories(p,data.splitlines())
+        dbCat.reorderSubcategories(p,data.splitlines())
         return ('Successfully reordered subcategories.',200,True)
     except Exception as e:
         return (f'Failed to reorder: {e}',400,False)
@@ -185,8 +186,8 @@ def updateDetails(p:tuple[str,...],title:str,info:str,preview:bool) \
         })
     else:
         try:
-            app.database.setCategoryTitle(p,title)
-            app.database.setCategoryInfo(p,info)
+            dbCat.setCategoryTitle(p,title)
+            dbCat.setCategoryInfo(p,info)
             return ('Successfully updated information.',200,True,{})
         except Exception as e:
             return (f'Failed to update: {e}',400,False,{})
@@ -201,7 +202,7 @@ def createSubcategory(p:tuple[str,...],newname:str,cattype:str,newtitle:str) \
         return ('Invalid category type.',400,False)
     is_table = cattype == 'tab'
     try:
-        app.database.createCategory(p+(newname,),is_table,newtitle,'')
+        dbCat.createCategory(p+(newname,),is_table,newtitle,'')
         return (f'Successfully created '
                 f'{'table' if is_table else 'subcategory'}',
                 200,True)
@@ -214,7 +215,7 @@ def renameCategory(p:tuple[str,...],newpath:str) -> tuple[str,int,bool]:
     '''
     try:
         np_tup = tuple(newpath.split('/'))
-        app.database.renameCategory(p,np_tup)
+        dbCat.renameCategory(p,np_tup)
         return (f'Renamed successfully. Go to it at <a '
                 f'href="/tables/{newpath}">here</a>.',
                 200,True)
@@ -230,7 +231,7 @@ def deleteCategory(p:tuple[str,...],confirm:str) -> tuple[str,int,bool]:
     if p[-1] != confirm:
         return ('Confirmation failed.',400,False)
     try:
-        app.database.deleteCategory(p)
+        dbCat.deleteCategory(p)
         return (f'Deleted successfully. Go to its parent <a '
                 f'href="/tables/{'/'.join(p[:-1])}">here</a>.',
                 200,True)
@@ -247,7 +248,7 @@ def insertNumbers(p:tuple[str,...],indexes:list[str],exprs:list[str],
         arg_i = [int(i) for i in indexes]
         arg_v = [int(v) for v in values]
         for i in range(len(exprs)):
-            app.database.createCategoryNumber(p,arg_i[i],arg_v[i],exprs[i])
+            dbCat.createCategoryNumber(p,arg_i[i],arg_v[i],exprs[i])
         return (f'Successfully created {len(exprs)} number(s).',200,True)
     except Exception as e:
         return (f'Failed to create: {e}',400,False)
@@ -264,7 +265,7 @@ def removeNumbers(p:tuple[str,...],indexes:str,confirm:str) \
     try:
         ilist = indexes.split()
         for i in map(int,ilist):
-            app.database.deleteCategoryNumber(p,i)
+            dbCat.deleteCategoryNumber(p,i)
         return (f'Successfully deleted {len(ilist)} numbers.',200,True)
     except Exception as e:
         return (f'Failed to delete: {e}',400,False)

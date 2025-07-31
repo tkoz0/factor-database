@@ -1,9 +1,12 @@
 import quart
 
+import app.database.numbers as dbNum
+import app.database.users as dbUser
+from app.database.helpers import FdbException
+
 from app.utils.pageData import basePageData
 from app.utils.session import getUser
 from app.utils.errorPage import basicErrorPage
-import app.database as db
 from app.config import \
     MAX_FACTORS_LEN, \
     MAX_DETAILS_LEN, \
@@ -15,7 +18,7 @@ def factorInfo(i:int):
     '''
     gets details for factor.jinja template
     '''
-    row = db.getFactorByID(i)
+    row = dbNum.getFactorById(i)
     if row is None:
         return { 'exists': False, 'factor_id': i }
 
@@ -30,11 +33,11 @@ def factorInfo(i:int):
     ret['factor2_exists'] = row.f2_id is not None
     ret['factor1_id'] = row.f1_id
     ret['factor2_id'] = row.f2_id
-    ret['factors_old'] = db.getOldFactors(i)
+    ret['factors_old'] = dbNum.getOldFactors(i)
 
     if row.f1_id is not None and row.f2_id is not None:
-        frow1 = db.getFactorByID(row.f1_id)
-        frow2 = db.getFactorByID(row.f2_id)
+        frow1 = dbNum.getFactorById(row.f1_id)
+        frow2 = dbNum.getFactorById(row.f2_id)
         assert frow1 is not None and frow2 is not None, 'internal error'
 
         ret['factor1_value'] = frow1.value
@@ -45,7 +48,7 @@ def factorInfo(i:int):
     return ret
 
 @bp.get('/factor/<int:i>')
-async def factor_get(i:int):
+async def factorGet(i:int):
     factor_info = factorInfo(i)
     code = 200 if factor_info['exists'] else 404
     return quart.Response(
@@ -64,21 +67,21 @@ def updatePrimality(i:int,status:str,run_prp:str) -> tuple[str,int,bool]:
 
     if status == '0':
         try:
-            db.setFactorComposite(i,run_prp_b)
+            dbNum.setFactorComposite(i,run_prp_b)
             return ('Factor successfully set as composite.',200,True)
         except Exception as e:
             return (f'Failed to update status: {e}',400,False)
 
     elif status == '1':
         try:
-            db.setFactorProbable(i,run_prp_b)
+            dbNum.setFactorProbable(i,run_prp_b)
             return ('Factor successfully set as probable prime.',200,True)
         except Exception as e:
             return (f'Failed to update status: {e}',400,False)
 
     elif status == '2':
         try:
-            db.setFactorPrime(i,run_prp_b)
+            dbNum.setFactorPrime(i,run_prp_b)
             return ('Factor successfully set as prime.',200,True)
         except Exception as e:
             return (f'Failed to update status: {e}',400,False)
@@ -86,13 +89,13 @@ def updatePrimality(i:int,status:str,run_prp:str) -> tuple[str,int,bool]:
     else:
         return ('Invalid primality status.',400,False)
 
-def insertFactors(i:int,u:None|db.UserRow,name:str,
+def insertFactors(i:int,u:None|dbUser.UserRow,name:str,
                   factors:str,details:str) -> tuple[str,int,bool]:
     '''
     process form for inserting factors
     returns (msg,code,ok)
     '''
-    row = db.getFactorByID(i)
+    row = dbNum.getFactorById(i)
     if row is None:
         return ('Invalid factor ID.',404,False)
 
@@ -122,24 +125,23 @@ def insertFactors(i:int,u:None|db.UserRow,name:str,
         if cof % f != 0:
             continue
         try:
-            db.addFactor(cof,f)
+            dbNum.addFactor(cof,f)
             cof //= f
             count_found += 1
         # only catch FDBException to allow internal asserts to be obvious
-        except db.FDBException:
+        except FdbException:
             pass
 
     user_id = None if u is None else u.id
     ip = quart.request.remote_addr
 
     if count_found > 0:
-        db.insertFactorForm(user_id,name,factors,details,ip,i)
         return ('Factorization successful.',200,True)
     else:
         return ('Did not find any new factors.',400,False)
 
 @bp.post('/factor/<int:i>')
-async def factor_post(i:int):
+async def factorPost(i:int):
     data = await quart.request.form
     user = getUser()
     code = 200

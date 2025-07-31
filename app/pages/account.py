@@ -1,6 +1,8 @@
 import quart
 
-import app.database
+import app.database.users as dbUser
+from app.database.helpers import FdbException
+
 from app.utils.pageData import basePageData
 from app.utils.session import getSession
 from app.config import RENEW_SESSIONS
@@ -31,7 +33,7 @@ async def loginPost():
 
         u,p = data['username'],data['password']
         assert isinstance(u,str) and isinstance(p,str), 'internal error'
-        user = app.database.verifyUser(u,p,quart.request.remote_addr)
+        user = dbUser.verifyUser(u,p,quart.request.remote_addr)
 
         if user is not None:
 
@@ -41,7 +43,7 @@ async def loginPost():
 
             else:
                 assert user.username is not None, 'internal error'
-                token = app.database.createSession(user.username,ip)
+                token = dbUser.createSession(user.username,ip)
                 msg = 'Login successful.'
                 ok = True
 
@@ -86,7 +88,7 @@ async def accountGet():
             token_bytes = bytes.fromhex(token)
             ip = quart.request.remote_addr
             if RENEW_SESSIONS:
-                exp_time = app.database.updateSession(token_bytes,ip) \
+                exp_time = dbUser.updateSession(token_bytes,ip) \
                     .replace(microsecond=0)
         except:
             pass
@@ -131,22 +133,22 @@ async def accountPost():
         else:
 
             try:
-                app.database.changeUserPassword(session.user_id,
-                                                data['new_password'],
-                                                data['password'])
+                dbUser.changeUserPassword(session.user_id,
+                                          data['new_password'],
+                                          data['password'])
                 msg = 'Password updated.'
                 ok = True
 
-            except app.database.FDBException as e:
+            except FdbException as e:
                 msg = str(e)
                 ok = False
                 code = 400
 
     elif 'api' in data and data['api'] == '1':
 
-        user_row = app.database.getUser(session.user_id)
+        user_row = dbUser.getUser(session.user_id)
         assert user_row is not None, 'internal error'
-        key = app.database.makeAPIKey(session.user_id)
+        key = dbUser.makeApiKey(session.user_id)
         msg = f'API key generated. Please save it securely.'
         ok = True
 
@@ -178,7 +180,7 @@ async def logout():
     token = quart.request.cookies.get('token')
     try:
         token_bytes = bytes.fromhex(token) # type:ignore
-        app.database.deleteSession(token_bytes)
+        dbUser.deleteSession(token_bytes)
     except:
         pass
     ret = quart.Response(

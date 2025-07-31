@@ -16,10 +16,16 @@ def jsonResponse(obj,code=200,/) -> quart.Response:
 
 @bp.get('/api')
 async def apiGet():
+    '''
+    api documentation
+    '''
     return await quart.render_template('api.jinja',
                                        page='api',
                                        **basePageData())
 
 @bp.post('/api')
 async def apiPost():
+    '''
+    api usage
+    '''
     return jsonResponse({'message':'not implemented'},501)
