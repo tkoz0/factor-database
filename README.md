@@ -13,8 +13,8 @@ This is a web app for tracking integer factorization progress.
 
 # dependencies
 
-The following versions were used for development. Other versions should work but
-compatibility has not been evaluated yet. Development and production are
+The following versions were used for development. Other versions should work
+but compatibility has not been evaluated yet. Development and production are
 currently using Ubuntu 24.04
 
 - Python (3.12)
@@ -49,7 +49,6 @@ Get Mathjax
 - available at `https://github.com/mathjax/MathJax/blob/master/es5/tex-svg-full.js`
 
 Sample database
-- TODO organize into small and large samples for different purposes
 - for development testing
 - run `sample/make_sample_db.py`
 - includes administrator account `admin` with password `admin`
@@ -70,12 +69,14 @@ Running
 
 # maintenance
 
-TODO needs instructions
+TODO improve this section
+
 - periodically clearing old rows from the logs table
-  - TODO make log viewing/clearing an option on an admin page
-- adding new numbers to database (TODO do this properly without prefactoring)
-- proving primality of probable primes (TODO script for this needs work)
-- changing status of unknown numbers (TODO no script for this yet)
+- adding new numbers to database
+  - currently this should be done after prefactoring
+  - TODO handle small factors so this is not necessary
+- proving primality of probable primes
+- changing status of unknown numbers to prime or composite
 
 # todo
 
@@ -83,64 +84,78 @@ TODO needs instructions
   - remove unreferenced primes/numbers
   - remove old factorizations (without the smallest prime factor)
   - remove factors_old table
+
 - make factors under 2^64 go straight to small primes storage data
   - do not create factor ids for small factors
-  - require that submitted factors under 2^64 are prime
+  - maybe require that submitted factors under 2^64 are prime
+  - eliminate the "need" for the prefactoring script
 
-- make number page link all factors including old ones
-- make factor page link to numbers it divides
-  - also other factors it divides
-- add a "factored" status on factor pages
-- add account button to close all other sessions
-- attempt to submit new factors to factordb.com
-- remove submissions table
-- rework the numbers per page stuff for browsing tables
+- (pre)factoring
+  - support cado-nfs in prefactoring script
 
-- basic info/description on production
-  - store in /numbers scripts and jinja templates for certain types
-- near repdigit repunit related formulas script
+- sample database
+  - settings for enable/disable components
+  - (users, numbers, some factor data, ...)
 
-- organize sample databases into a few different options
-  - small (possibly with no numbers)
-  - large (with similarities to production)
-  - add some more complete factorization data from factordb.com
+- pages
+  - make number page link all factors including old ones
+  - make factor page link to numbers and factors it divides
+  - add a "factored" status on factor pages
+  - add account button to close all other sessions
+  - rework the numbers per page stuff for browsing tables
+  - stats page (stats.py)
+  - recent page (recent.py)
 
-# later todos
+- database
+  - attempt to submit new factors to factordb.com
+  - consider switching to something like bcrypt for user auth
+  - setup a procedure for storing/updating table/category descriptions
+    - store text files with descriptions in this repo
 
-- use column names instead of `*` in sql queries
-- caching for pages that take a lot of querties, particularly the factor tables
-- setup a python virtual environment as part of the repo
-  - requires at least python3.12
-  - include a requirements.txt
-- implement an api
+- devops
+  - consider creating a docker container
+
+- git repo
+  - improve list of sequences
+
+- more numbers
+  - script for near repdigit related formulas
+
+- implement api
   - some possible routes below
   - choose get/post where appropriate
   - /api/get_number (get, by id or value)
   - /api/get_factor (get, by id or value)
   - /api/submit_factors (post)
   - /api/list_category (get)
-- look at time limits for quart routes to avoid an infinite loop bug
-- look at query planner for various queries in database.py
-- support compression for submission data (and possibly other data)
-- make factor page show numbers and factors containing it as a factor
-- find a better way to update factors with few operations
-- function for removing small factors (64 bit) from the database
-- setup more proper testing (quart: app.test_request_context)
-- setup database triggers if they make sense anywhere
+
+- other todos
+  - look at time limits for quart routes to avoid an infinite loop bug
+  - look at query planner for various queries in database.py
+  - support compression for submission data (and possibly other data)
+  - find a better way to update factors with few operations
+  - setup more proper testing (quart: app.test_request_context)
+  - setup database triggers if they make sense anywhere
+  - setup a python virtual environment as part of the repo
+    - requires at least python3.12
+    - include a requirements.txt
+  - caching for expensive pages, particularly the factor tables
+  - use column names instead of `*` in sql queries
 
 # feature goals
 
 - contribution details
 - number reservation system
   - configurable limit per user
-- stats page (make stats.py)
-- recent page (make recent.py)
 - ecm progress
   - estimate smallest factor size
   - ecm progress can be removed once factored
   - ecm progress is inherited to composite cofactors
 - factoring time estimates
 - JSON API
+- suggested factoring algorithm/parameters (ecm/nfs)
+- SNFS polynomials and parameters
+- GNFS parameters
 
 # misc goals
 
