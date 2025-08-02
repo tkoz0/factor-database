@@ -1,7 +1,8 @@
 import quart
 import sys
 
-import app.database as db
+from app.database.connectionPool import closeDatabaseConnections
+from app.database.logging import closeLogging
 
 from app.pages.account import bp as bpAccount
 from app.pages.api import bp as bpApi
@@ -32,8 +33,8 @@ app.register_blueprint(bpTables)
 @app.after_serving
 async def dbcon_close():
     sys.stderr.write('closing database stuff\n')
-    db.closeDatabaseConnections()
-    db.closeLogging()
+    closeDatabaseConnections()
+    closeLogging()
 
 # for development
 if __name__ == '__main__':
