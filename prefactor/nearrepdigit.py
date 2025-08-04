@@ -14,9 +14,15 @@ the missing number patterns are identified to be these (decomposable):
 44744 = [79999+1][55556+0]
 66566 = [50002+0][13333+1]
 66766 = [16666+1][40001+0]
+
+TODO replace lists of (a,b) with a class for polynomial (with x=base^n)
+TODO store a few extra sequence representations by offsetting index
+(the [-M,M] range chatgpt suggested)
+TODO reorganize this code, it has turned into spaghetti
 '''
 
 from fractions import Fraction
+import itertools
 import math
 import re
 
@@ -53,6 +59,22 @@ def _regexToStdkmd(s:str,/) -> str:
 
 def _rep(d,/):
     return f'{d}{d}..{d}{d}'
+
+def _divisors(n:int) -> list[int]:
+    # basic up to square root algorithm for divisors
+    n = abs(n)
+    assert n > 0
+    i = 1
+    lo: list[int] = []
+    hi: list[int] = []
+    while i*i < n:
+        if n % i == 0:
+            lo.append(i)
+            hi.append(n//i)
+        i += 1
+    if i*i == n:
+        lo.append(i)
+    return lo + hi[::-1]
 
 class NrrPattern:
     '''
@@ -403,6 +425,182 @@ class NrrPattern:
 
         return K,s
 
+    @staticmethod
+    def basicIntegralPolynomialFactor(terms:tuple[tuple[int,int],...],/) \
+            -> tuple[tuple[tuple[int,int],...],...]:
+        '''
+        input is tuple of polynomial terms (a,b) meaning a * x^b
+        attempts to factor out degree 1 terms of the form (c*x - d)
+        - c divides the leading coefficient
+        - d divides the constant
+
+        everything is integral, if any term would end up with a fraction,
+        it is not factored
+
+        it is possible to miss irreducible quadratic or higher degree factors
+        this only searches for linear factors with rational root theorem
+
+        terms are ordered from largest degree to smallest degree
+        TODO use some polynomial object instead
+        '''
+        debug = False
+        assert len(terms) > 0
+        poly_dict: dict[int,int] = dict() # exp -> coef
+        for a,b in terms:
+            assert b >= 0
+            assert b not in poly_dict
+            assert a != 0
+            poly_dict[b] = a
+        poly: list[int] = [0]*(1+max(poly_dict.keys()))
+        for i,c in poly_dict.items():
+            poly[i] = c
+        if debug:
+            print(f'input poly: {poly}')
+        # divide out x
+        ret: tuple[tuple[tuple[int,int],...],...] = ()
+        while poly[0] == 0:
+            ret += (((1,1),),) # 1 * x^1
+            poly = poly[1:]
+        if debug:
+            print(f'divide out x: {poly}')
+
+        while True:
+            if len(poly) == 1: # constant
+                ret += (((poly[0],0),),) # a * x^0
+                if debug:
+                    print(f'found constant factor: {ret[-1]}')
+                break
+            elif len(poly) == 2: # linear
+                g = math.gcd(poly[0],poly[1])
+                ret += (((poly[1]//g,1),(poly[0]//g,0)),)
+                if debug:
+                    print(f'found linear factor: {ret[-1]}')
+                if g != 1:
+                    ret += (((g,0),),)
+                    if debug:
+                        print(f'found constant factor: {ret[-1]}')
+                break
+            else: # >= quadratic
+                if debug:
+                    print(f'attempting to factor: {poly}')
+                # form divisor lists
+                leading_divs = _divisors(poly[-1])
+                constant_divs = _divisors(poly[0])
+                factored = False
+
+                for c,d in itertools.product(leading_divs,constant_divs):
+
+                    # try c*x + d (factor -d/c)
+                    if debug:
+                        print(f'trying {c}*x + {d}')
+                    work = [0] * (len(poly) - 1)
+                    i = len(work) - 1
+                    rem = poly[-1]
+                    while i >= 0:
+                        if rem % c == 0:
+                            work[i] = rem // c
+                            rem = poly[i] - work[i]*d
+                        else:
+                            break
+                        i -= 1
+                    if i < 0 and rem == 0: # factored
+                        ret += (((c,1),(d,0)),)
+                        if debug:
+                            print(f'found linear factor: {c}*x + {d}')
+                        poly = work
+                        factored = True
+                        break
+
+                    # try c*x - d (factor d/c)
+                    if debug:
+                        print(f'trying {c}*x - {d}')
+                    work = [0] * (len(poly) - 1)
+                    i = len(work) - 1
+                    rem = poly[-1]
+                    while i >= 0:
+                        if rem % c == 0:
+                            work[i] = rem // c
+                            rem = poly[i] + work[i]*d
+                        else:
+                            break
+                        i -= 1
+                    if i < 0 and rem == 0: # factored
+                        ret += (((c,1),(-d,0)),)
+                        if debug:
+                            print(f'found linear factor: {c}*x - {d}')
+                        poly = work
+                        factored = True
+                        break
+
+                if not factored:
+                    g = math.gcd(*(poly[i] for i in range(len(poly))
+                                   if poly[i] != 0))
+                    ret += (tuple((poly[i]//g,i) for i in range(len(poly))
+                                  if poly[i] != 0),)
+                    if debug:
+                        print(f'found factor: {ret[-1]}')
+                    if g != 1:
+                        ret += (((g,0),),)
+                        if debug:
+                            print(f'found constant factor: {ret[-1]}')
+                    break
+
+        return ret
+
+    @staticmethod
+    def factorSequenceIntoOthers(nrr:'NrrPattern',
+                nrr_classes:list[tuple[list['NrrPattern'], 'NrrPattern']],/) \
+                -> list[tuple['NrrPattern',...]]:
+        '''
+        attempt to find sequences the given nrr can be factored into
+        '''
+        debug = False
+        if debug:
+            print(f'input has terms {nrr.terms} and mult {nrr.mult}')
+        nrr_numer,nrr_denom = nrr.mult.as_integer_ratio()
+        nrr_terms_degree = max(b for _,b in nrr.terms)
+        if nrr_terms_degree < 2:
+            return []
+        factorization = NrrPattern.basicIntegralPolynomialFactor(nrr.terms)
+        for factor in factorization:
+            if debug:
+                print(f'has factor {factor}')
+            # each factor should be non constant
+            # otherwise common factors were not removed
+            assert max(b for _,b in factor) > 0
+        if len(factorization) < 2:
+            return []
+
+        assert len(factorization) == 2, \
+            'only supporting split to 2 factors for now'
+        factor1,factor2 = factorization
+
+        nrr_numer_divs = _divisors(nrr_numer)
+        nrr_denom_divs = _divisors(nrr_denom)
+        nrr_try_mults: set[Fraction] = set()
+        for n,d in itertools.product(nrr_numer_divs,nrr_denom_divs):
+            nrr_try_mults.add(Fraction(n,d))
+        if debug:
+            print(f'factors of mult to try are {nrr_try_mults}')
+
+        def _findNrr(terms:tuple[tuple[int,int],...]) -> 'None|NrrPattern':
+            for _,nrr_representative in nrr_classes:
+                if NrrPattern.compareShiftAndMultiply(
+                    nrr.base,terms,nrr_representative.terms) is not None:
+                    return nrr_representative
+            return None
+
+        f1_nrr = _findNrr(factor1)
+        f2_nrr = _findNrr(factor2)
+        if f1_nrr is not None and f2_nrr is not None:
+            if debug:
+                print(f'is product of {f1_nrr.exprString()} '
+                      f'(class {f1_nrr.disp_nice}) '
+                      f'and {f2_nrr.exprString()} '
+                      f'(class {f2_nrr.disp_nice})')
+            return [(f1_nrr,f2_nrr)]
+        return []
+
 def _nrrSortKeyHelper(base:int,nrr:NrrPattern,/):
     # define a sorting order to try to match stdkmd.net selections
     numer,denom = nrr.mult.as_integer_ratio()
@@ -562,7 +760,8 @@ def analyzeStdkmd():
     print(f'created {len(nrrs)} raw nrr patterns')
     for nrr in nrrs:
         print(f'    {nrr.disp_nice} ({nrr.disp_stdkmd}) -> {nrr.exprString()}')
-        nrr.checkWithEval(100)
+        #nrr.checkWithEval(100)
+        nrr.checkWithEval()
     seq_classes = groupNrrsByEquivalence(nrrs,run_extra_checks=True)
     print(f'found {len(seq_classes)} equivalence classes')
     assert len(set(nrr.disp_nice for nrr in nrrs)) == len(nrrs)
@@ -660,16 +859,18 @@ def analyzeStdkmd():
 
     assert max(len(s) for s in seq_stdkmd) == 1, 'something is duplicated on stdkmd.net'
 
-    not_on_stdkmd: list[tuple[str,list[NrrPattern]]] = []
-    yes_on_stdkmd: dict[str,tuple[str,bool,list[NrrPattern]]] = dict()
+    not_on_stdkmd: list[tuple[str,list[NrrPattern],NrrPattern]] = []
+    yes_on_stdkmd: dict[str,tuple[str,bool,list[NrrPattern],NrrPattern]] = dict()
     count_same = 0
     count_all = 0
+    seq_class_representatives: list[NrrPattern] = []
     for i,seq_class in enumerate(seq_classes):
         nrr_choice = min(seq_classes[i],key=_nrrSortKey(10))
+        seq_class_representatives.append(nrr_choice)
         out_str = ' '.join(f'(\033[94m{nrr.disp_stdkmd}\033[0m)' if nrr == nrr_choice
                            else nrr.disp_stdkmd for nrr in seq_class)
         if len(seq_stdkmd[i]) == 0:
-            not_on_stdkmd.append((f'not on stdkmd: {out_str}',seq_class))
+            not_on_stdkmd.append((f'not on stdkmd: {out_str}',seq_class,nrr_choice))
         else:
             stdkmd_pattern = seq_stdkmd[i][0]
             nrr_stdkmd = [nrr for nrr in seq_class if stdkmd_pattern == nrr.disp_stdkmd][0]
@@ -682,21 +883,35 @@ def analyzeStdkmd():
                 out_str += f' stdkmd({nrr_stdkmd.exprString()})'
                 out_str += '\033[0m'
             yes_on_stdkmd[stdkmd_pattern] = (f'{stdkmd_pattern} {same_note}: {out_str}',
-                                             selected_same,seq_class)
+                                             selected_same,seq_class,nrr_choice)
             count_all += 1
             if selected_same:
                 count_same += 1
+    #nrr_map: dict[tuple[Fraction,tuple[tuple[int,int],...]],NrrPattern] = dict()
+    #for nrr in nrrs:
+    #    nrr_map[(nrr.mult,nrr.terms)] = nrr
+    nrr_classes = list((seq_classes[i],seq_class_representatives[i])
+                       for i in range(len(seq_classes)))
 
     for stdkmd_pattern in sorted(yes_on_stdkmd):
-        msg,selected_same,nrr_list = yes_on_stdkmd[stdkmd_pattern]
+        msg,selected_same,nrr_list,nrr_selected = yes_on_stdkmd[stdkmd_pattern]
         print(msg)
         for nrr in nrr_list:
             print(f'    {nrr.disp_stdkmd}: {nrr.exprString()}')
+        factorizations = NrrPattern.factorSequenceIntoOthers(nrr_selected,nrr_classes)
+        for factorization in factorizations:
+            print(f'    \033[93mproduct of classes '
+                  f'({' '.join(nrr.disp_stdkmd for nrr in factorization)})\033[0m')
 
-    for msg,nrr_list in not_on_stdkmd:
+    for msg,nrr_list,nrr_selected in not_on_stdkmd:
         print(msg)
         for nrr in nrr_list:
             print(f'    {nrr.disp_stdkmd}: {nrr.exprString()}')
+        factorizations = NrrPattern.factorSequenceIntoOthers(nrr_selected,nrr_classes)
+        for factorization in factorizations:
+            print(f'    \033[93mproduct of classes '
+                  f'({' '.join(nrr.disp_stdkmd for nrr in factorization)})\033[0m')
+
     print(f'selected same pattern for {count_same}/{count_all}')
 
 if __name__ == '__main__':
