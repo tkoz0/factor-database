@@ -2,7 +2,7 @@
 import itertools
 import math
 
-def _divisors(n:int) -> list[int]:
+def _divisors(n:int,/) -> list[int]:
     # basic up to square root algorithm for divisors
     n = abs(n)
     assert n > 0
@@ -190,19 +190,19 @@ class IntPoly:
             p //= 2
         return ret
 
-    def derivative(self) -> 'IntPoly':
+    def derivative(self,/) -> 'IntPoly':
         if self.coefs == ():
             return IntPoly()
         return IntPoly(*(i * self.coefs[i]
                          for i in range(1,len(self.coefs))))
 
-    def integral(self,c:int=0) -> 'IntPoly':
+    def integral(self,c:int=0,/) -> 'IntPoly':
         for i in range(len(self.coefs)):
             assert self.coefs[i] % (i+1) == 0
         return IntPoly(c,*(self.coefs[i] // (i+1)
                            for i in range(len(self.coefs))))
 
-    def factor(self) -> tuple['IntPoly',...]:
+    def factor(self,/) -> tuple['IntPoly',...]:
         debug = False
         if debug:
             print(f'factoring {self}')
