@@ -14,29 +14,13 @@ the missing number patterns are identified to be these (decomposable):
 44744 = [79999+1][55556+0]
 66566 = [50002+0][13333+1]
 66766 = [16666+1][40001+0]
-
-TODO replace lists of (a,b) with a class for polynomial (with x=base^n)
-TODO store a few extra sequence representations by offsetting index
-(the [-M,M] range chatgpt suggested)
-TODO reorganize this code, it has turned into spaghetti
 '''
 
 from fractions import Fraction
-import itertools
 import math
 import re
 
-def _stringForIntegerWithSign(n:int,/) -> str:
-    return f'+{n}' if n >= 0 else str(n)
-
-def _stringForLinearPolynomial(b:int,c:int,var:str='n',/) -> str:
-    if b == 0:
-        return str(c)
-    if c == 0:
-        return var if b == 1 else f'{b}*n'
-    if b == 1:
-        return f'n{_stringForIntegerWithSign(c)}'
-    return f'{b}*n{_stringForIntegerWithSign(c)}'
+from nrrpoly import NrrPoly
 
 def _regexToStdkmd(s:str,/) -> str:
     # regex to the 5 digit pattern format used on stdkmd.net
@@ -54,27 +38,11 @@ def _regexToStdkmd(s:str,/) -> str:
         return s[0]+3*s[1]+s[3]
     elif re.fullmatch(r'[^\*]\*[^\*][^\*]\*',s): # AABAA
         return 2*s[0]+s[2]+2*s[3]
-    assert 0, s
-    raise Exception() # make vscode stop complaining about not returning str
+    else:
+        return f'other({s})'
 
 def _rep(d,/):
     return f'{d}{d}..{d}{d}'
-
-def _divisors(n:int) -> list[int]:
-    # basic up to square root algorithm for divisors
-    n = abs(n)
-    assert n > 0
-    i = 1
-    lo: list[int] = []
-    hi: list[int] = []
-    while i*i < n:
-        if n % i == 0:
-            lo.append(i)
-            hi.append(n//i)
-        i += 1
-    if i*i == n:
-        lo.append(i)
-    return lo + hi[::-1]
 
 class NrrPattern:
     '''
@@ -86,10 +54,11 @@ class NrrPattern:
     example: "12*3" produces the sequence 13,123,1223,12223,...
     '''
 
-    def __init__(self,base:int,pattern:str,/):
+    def __init__(self,base:int,pattern:str,sort_tag:int=0,/):
         assert 2 <= base <= 36
         digits_str = '0123456789abcdefghijklmnopqrstuvwxyz'
         self.base = base
+        self.sort_tag = sort_tag
 
         # pattern parsing loop
         found_first_digit = False
@@ -124,8 +93,10 @@ class NrrPattern:
                 disp_str += pattern[i]
             found_first_digit = True
         assert found_first_digit, 'no digits in pattern'
+        self.re_pattern = re.compile(regex_str)
+        self.re_str = regex_str
         self.regex = re.compile(regex_str)
-        self.disp_nice = disp_str
+        self.nice_str = disp_str
         assert leading_digit is not None
         assert trailing_digit is not None
         self.leading_digit = leading_digit
@@ -138,9 +109,9 @@ class NrrPattern:
         # track previous digits in number so far (n*prev_b + prev_c)
         prev_b = 0
         prev_c = 0
-        # track numerator terms found in form (a,b,c) meaning a*(base)^(b*n+c)
-        # consider it to have a denominator of base - 1 (handled later)
-        summed_terms: list[tuple[int,int,int]] = []
+        # track the numerator polynomial with terms in the form a*(base)^(b*n)
+        # implicitly consider the denominator to be (base - 1) (handled later)
+        poly = NrrPoly(base)
 
         # form terms for each component (single digit or repeated)
         assert len(pattern_num) == len(pattern_rep)
@@ -148,157 +119,75 @@ class NrrPattern:
             d = pattern_num[i]
             if pattern_rep[i]:
                 # first add repetition of (b+1)*n + c digits
-                # ( (base)^((prev_b+1)*n + c) - 1 ) / (base - 1)
+                # d * ( (base)^((prev_b+1)*n + c) - 1 ) / (base - 1)
                 # then subtract repetition of b*n + c digits
-                # ( (base)^(prev_b*n + c) - 1 ) / (base - 1)
-                summed_terms.append((d,prev_b+1,prev_c))
-                summed_terms.append((-d,prev_b,prev_c))
+                # d * ( (base)^(prev_b*n + c) - 1 ) / (base - 1)
+                poly_a = NrrPoly(base,-1,*((0,)*prev_b),base**prev_c)
+                poly_b = NrrPoly(base,*((0,)*prev_b),base**prev_c) \
+                    - NrrPoly(base,1)
+                poly += NrrPoly(base,d) * (poly_a - poly_b)
                 prev_b += 1
             else:
                 # single digit at position b*n+c, d * base^(b*n + c)
                 # multiply by the base - 1 denominator
-                summed_terms.append(((base-1)*d,prev_b,prev_c))
+                poly += NrrPoly(base,*((0,)*prev_b),d*base**prev_c*(base-1))
                 prev_c += 1
 
-        # convert exponents from b*n+c to b*n
-        for i,(a,b,c) in enumerate(summed_terms):
-            summed_terms[i] = (a*(base**c),b,0)
-
-        # merge terms with matching exponent
-        merged_terms_d: dict[int,int] = dict()
-        for a,b,c in summed_terms:
-            assert c == 0
-            if b not in merged_terms_d:
-                merged_terms_d[b] = 0
-            merged_terms_d[b] += a
-
-        # sort by exponents in descending order (nonzero terms)
-        merged_terms_l: list[tuple[int,int]] = \
-            sorted(((merged_terms_d[b],b) for b in merged_terms_d
-                    if merged_terms_d[b] != 0),
-                   key = lambda z : -z[1])
-
-        # chosen to skip the step of converting exponents like 10^(2n)
-        # to 10^(2n+1) if coefficient has factor 10 because some of
-        # the later steps/ideas are easier with a more "canonical" form
-        #
-        # simplify by dividing base out of coefficients
-        numer_terms: list[tuple[int,int,int]] = []
-        for i,(a,b) in enumerate(merged_terms_l):
-            assert a != 0
-            #c = 0
-            #while a % base == 0:
-            #    a //= base
-            #    c += 1
-            #numer_terms.append((a,b,c))
-            numer_terms.append((a,b,0))
-
-        # divide out commmon factor in fraction
-        # here we use the base - 1 denominator that was ignored so far
-        g = math.gcd(base-1,*(a for a,_,_ in numer_terms))
-        numer_terms = [(a//g,b,c) for a,b,c in numer_terms]
-
-        # take out common factor from numerator terms
-        m = math.gcd(*(a for a,_,_ in numer_terms))
-        numer_terms = [(a//m,b,c) for a,b,c in numer_terms]
-
-        # mult.numer * (numerator terms) / mult.denom
-        # guaranteed that numerator terms share no common factor
-        assert all(c == 0 for _,_,c in numer_terms)
-        self.terms = tuple((a,b) for a,b,_ in numer_terms)
-        self.mult = Fraction(m,(base-1)//g)
+        # divide out common factor from the polynomial
+        # then the final polynomial is self.mult * self.poly
+        g = math.gcd(*poly.coefs)
+        poly //= NrrPoly(base,g)
+        self.mult = Fraction(g,(base-1))
+        self.poly = poly
 
         # deduplication by keys is not easy to do rigorously with offsets
         # removing the common coefficient factors is easy but coming up with
         # a bound for checking offsets for a canonical form is not trivial
 
-        ### (begin) old code for possible ideas
+        # one possible idea that probably works well enough is to store a few
+        # keys for a sequence by shifting its index a few times
+        # and dividing common factors
+        # then pick the lexicographic min coefficient vector
 
-        # deduplication key meant only for standard form terms with base^(k*n)
-        #self.key_index_offset = 0
-        #self.key_multiplied = 1
-        #self.key_terms = tuple(numer_terms)
+        # the more mathematically correct deduplication is to
+        # compare sequence pairs, which makes deduplication time quadratic
 
-        # try shifting the sequence and dividing out common factors
-        # pick the lexicographically minimum coefficient vector
-        # coming up with a way to do this "correctly" in general is hard
+    def __call__(self,n:int,/) -> int:
+        '''
+        evaluate the sequence at an index
+        '''
+        ret = self.mult.numerator * self.poly(n)
+        quot,rem = divmod(ret,self.mult.denominator)
+        assert rem == 0
+        return quot
 
-        # it is much easier to determine if 2 sequences are
-        # identical up to shift and multiply
-        # but deduplication like this requires quadratic time
-
-        # adjust offset to find an identifier for "essentially unique"
-        #assert all(c == 0 for _,_,c in key_terms)
-        #while all(a % (base**b) == 0 for a,b,_ in key_terms):
-        #    key_terms = [(a//(base**b),b,c) for a,b,c in key_terms]
-        #    self.key_index_offset += 1
-        #self.key_terms = tuple(key_terms)
-
-        ### (end) old code
-
-    def _exprStringNumerator(self,div:str,exp:str,/) -> str:
-        ret = ''
-        for i,(a,b) in enumerate(self.terms):
-            t = ''
-            if b == 0:
-                t += str(abs(a))
-            else:
-                if abs(a) != 1:
-                    t += f'{abs(a)}*'
-                t += f'{self.base}{exp}({_stringForLinearPolynomial(b,0)})'
-            if i > 0 and a > 0:
-                ret += '+'
-            elif a < 0:
-                ret += '-'
-            ret += t
-        return ret
-
-    def exprString(self,div='//',exp='**') -> str:
+    def exprString(self,div='//',exp='**',/) -> str:
         ''' typical expression string format for programming '''
-        ret = self._exprStringNumerator(div,exp)
         numer,denom = self.mult.as_integer_ratio()
-        if denom != 1:
-            ret = f'({ret}){div}{denom}'
-            if numer != 1:
-                ret = f'{numer}*{ret}'
-        elif numer != 1:
-            ret = f'{numer}*({ret})'
-        return ret
-
-    def _latexStringNumerator(self,/) -> str:
-        ret = ''
-        for i,(a,b) in enumerate(self.terms):
-            t = ''
-            if b == 0:
-                t += str(abs(a))
-            else:
-                if abs(a) != 1:
-                    t += f'{abs(a)}\\times'
-                t += f'{self.base}^{{{_stringForLinearPolynomial(b,0)}}}'
-            if i > 0 and a > 0:
-                ret += '+'
-            elif a < 0:
-                ret += '-'
-            ret += t
-        return ret
+        polystr = str(self.poly).replace('//',div).replace('**',exp)
+        if denom == 1:
+            return polystr if numer == 1 else f'{numer}*({polystr})'
+        else:
+            return f'({polystr}){div}{denom}' if numer == 1 else \
+                    f'{numer}*({polystr}){div}{denom}'
 
     def latexString(self,/) -> str:
         ''' latex code for nice expression display '''
-        ret = self._latexStringNumerator()
         numer,denom = self.mult.as_integer_ratio()
-        if denom != 1:
-            ret = f'{{{ret}\\over{denom}}}'
-            if numer != 1:
-                ret = f'{numer}\\times{ret}'
-        elif numer != 1:
-            ret = f'{numer}\\times\\left({ret}\\right)'
-        return ret
+        latexstr = self.poly.latex()
+        if denom == 1:
+            return latexstr if numer == 1 else \
+                f'{numer}\\times\\left({latexstr}\\right)'
+        else:
+            return f'{{{latexstr}\\over{denom}}}' if numer == 1 else \
+                f'{numer}\\times{{{latexstr}\\over{denom}}}'
 
     def checkWithEval(self,nmax:int=10,writeResults:bool=False):
         ''' an assert function to make sure the expression generator works '''
         expr = self.exprString()
         for n in range(nmax):
             v = eval(expr,{'n':n})
+            assert v == self(n)
             s1 = str(v)
             s2 = ''
             vv = v
@@ -311,335 +200,50 @@ class NrrPattern:
                       f'(base {self.base}: {repr(s2)})')
             assert n == 0 or self.regex.fullmatch(s2)
 
-    DEBUG: bool = False
-    DEBUG_L: bool = False # for inner loops
-
-    @staticmethod
-    def compareShiftAndMultiply(base:int,left:tuple[tuple[int,int],...],
-                                right:tuple[tuple[int,int],...],/) \
-                                -> None|tuple[Fraction,int]:
-        '''
-        check if the sequences are identical up to constant multiple and offset
-        returns none if they are not, otherwise the shift and multiply
-
-        base = number base system
-        left,right = sequence specification as terms (a,b) meaning a*base^(b*n)
-        left represents f(n), right represents g(n)
-        searches for K,s so f(n) = K * g(n+s), returns (K,s)
-
-        the method here was found with chatgpt assistance
-        '''
-        debug = NrrPattern.DEBUG
-        debug_l = NrrPattern.DEBUG_L # for inner loops
-        if debug:
-            print(f'called with base={base} left={left} right={right}')
-
-        def _basePow(f:Fraction) -> int|None:
-            # numer/denom = base**p (returns p(int) if exists, otherwise none)
-            numer,denom = f.as_integer_ratio()
-            if debug_l:
-                print(f'_basePow with {numer}/{denom}')
-            if numer <= 0: # only exists for positives
-                return None
-            if numer < denom:
-                ret = _basePow(1/f)
-                return None if ret is None else -ret
-            if denom != 1:
-                return None
-            bp_exp,bp_val = 0,1
-            while bp_val <= numer:
-                if bp_val == numer:
-                    if debug_l:
-                        print(f'_basePow returning {p}')
-                    return bp_exp
-                bp_exp += 1
-                bp_val *= base
-            return None
-
-        # all coefficients nonzero
-        assert len(left) > 0 and len(right) > 0
-        assert all(a != 0 for a,_ in left)
-        assert all(a != 0 for a,_ in right)
-        # base powers must be same
-        if tuple(b for _,b in left) != tuple(b for _,b in right):
-            if debug:
-                print('base powers not the same')
-            return None
-        assert len(left) == len(right)
-        if len(left) == 1:
-            # same term, just a multiply with no shift
-            K = Fraction(left[0][0],right[0][0])
-            if debug:
-                print(f'same term, K = {K}')
-            return K,0
-
-        # determine the offset from the first 2 terms
-        i,j = left[0][1],left[1][1]
-        assert i > j
-        p = _basePow(Fraction(left[0][0]*right[1][0],left[1][0]*right[0][0]))
-        if p is None or p % (i-j) != 0:
-            return None
-        s = p // (i-j)
-        if debug:
-            print(f'found offset s = {s}')
-        # now check that we get the same s for each i,j pair
-        for lefti in range(len(left)):
-            ai,i = left[lefti]
-            bi = right[lefti][0]
-            for rightj in range(lefti+1,len(right)):
-                bj,j = right[rightj]
-                aj = left[rightj][0]
-                assert i > j
-                p = _basePow(Fraction(ai*bj,aj*bi))
-                if debug_l:
-                    print(f'terms ({ai}*base^{i}) and ({bj}*base^{j}) '
-                          f'found p = {p}')
-                if p is None or p % (i-j) != 0 or p // (i-j) != s:
-                    return None
-        if debug:
-            print('all offset calculations match s')
-
-        # then determine the multiplier
-        i = left[0][1]
-        if s < 0:
-            K = Fraction(left[0][0]*base**(-i*s),right[0][0])
-        else:
-            K = Fraction(left[0][0],right[0][0]*base**(i*s))
-        if debug:
-            print(f'found multiplier K = {K}')
-        # and be sure each index gets the same result
-        for lefti in range(len(left)):
-            ai,i = left[lefti]
-            bi = right[lefti][0]
-            if s < 0:
-                K2 = Fraction(ai*base**(-i*s),bi)
-            else:
-                K2 = Fraction(ai,bi*base**(i*s))
-            if debug_l:
-                print(f'terms ({ai}*base^{i}) and ({bi}*base^{i}) '
-                      f'with multiplier {K2}')
-            if K != K2:
-                return None
-        if debug:
-            print(f'all multiplier calculations match K')
-
-        return K,s
-
-    @staticmethod
-    def basicIntegralPolynomialFactor(terms:tuple[tuple[int,int],...],/) \
-            -> tuple[tuple[tuple[int,int],...],...]:
-        '''
-        input is tuple of polynomial terms (a,b) meaning a * x^b
-        attempts to factor out degree 1 terms of the form (c*x - d)
-        - c divides the leading coefficient
-        - d divides the constant
-
-        everything is integral, if any term would end up with a fraction,
-        it is not factored
-
-        it is possible to miss irreducible quadratic or higher degree factors
-        this only searches for linear factors with rational root theorem
-
-        terms are ordered from largest degree to smallest degree
-        TODO use some polynomial object instead
-        '''
-        debug = False
-        assert len(terms) > 0
-        poly_dict: dict[int,int] = dict() # exp -> coef
-        for a,b in terms:
-            assert b >= 0
-            assert b not in poly_dict
-            assert a != 0
-            poly_dict[b] = a
-        poly: list[int] = [0]*(1+max(poly_dict.keys()))
-        for i,c in poly_dict.items():
-            poly[i] = c
-        if debug:
-            print(f'input poly: {poly}')
-        # divide out x
-        ret: tuple[tuple[tuple[int,int],...],...] = ()
-        while poly[0] == 0:
-            ret += (((1,1),),) # 1 * x^1
-            poly = poly[1:]
-        if debug:
-            print(f'divide out x: {poly}')
-
-        while True:
-            if len(poly) == 1: # constant
-                ret += (((poly[0],0),),) # a * x^0
-                if debug:
-                    print(f'found constant factor: {ret[-1]}')
-                break
-            elif len(poly) == 2: # linear
-                g = math.gcd(poly[0],poly[1])
-                ret += (((poly[1]//g,1),(poly[0]//g,0)),)
-                if debug:
-                    print(f'found linear factor: {ret[-1]}')
-                if g != 1:
-                    ret += (((g,0),),)
-                    if debug:
-                        print(f'found constant factor: {ret[-1]}')
-                break
-            else: # >= quadratic
-                if debug:
-                    print(f'attempting to factor: {poly}')
-                # form divisor lists
-                leading_divs = _divisors(poly[-1])
-                constant_divs = _divisors(poly[0])
-                factored = False
-
-                for c,d in itertools.product(leading_divs,constant_divs):
-
-                    # try c*x + d (factor -d/c)
-                    if debug:
-                        print(f'trying {c}*x + {d}')
-                    work = [0] * (len(poly) - 1)
-                    i = len(work) - 1
-                    rem = poly[-1]
-                    while i >= 0:
-                        if rem % c == 0:
-                            work[i] = rem // c
-                            rem = poly[i] - work[i]*d
-                        else:
-                            break
-                        i -= 1
-                    if i < 0 and rem == 0: # factored
-                        ret += (((c,1),(d,0)),)
-                        if debug:
-                            print(f'found linear factor: {c}*x + {d}')
-                        poly = work
-                        factored = True
-                        break
-
-                    # try c*x - d (factor d/c)
-                    if debug:
-                        print(f'trying {c}*x - {d}')
-                    work = [0] * (len(poly) - 1)
-                    i = len(work) - 1
-                    rem = poly[-1]
-                    while i >= 0:
-                        if rem % c == 0:
-                            work[i] = rem // c
-                            rem = poly[i] + work[i]*d
-                        else:
-                            break
-                        i -= 1
-                    if i < 0 and rem == 0: # factored
-                        ret += (((c,1),(-d,0)),)
-                        if debug:
-                            print(f'found linear factor: {c}*x - {d}')
-                        poly = work
-                        factored = True
-                        break
-
-                if not factored:
-                    g = math.gcd(*(poly[i] for i in range(len(poly))
-                                   if poly[i] != 0))
-                    ret += (tuple((poly[i]//g,i) for i in range(len(poly))
-                                  if poly[i] != 0),)
-                    if debug:
-                        print(f'found factor: {ret[-1]}')
-                    if g != 1:
-                        ret += (((g,0),),)
-                        if debug:
-                            print(f'found constant factor: {ret[-1]}')
-                    break
-
-        return ret
-
-    @staticmethod
-    def factorSequenceIntoOthers(nrr:'NrrPattern',
-                nrr_classes:list[tuple[list['NrrPattern'], 'NrrPattern']],/) \
-                -> list[tuple['NrrPattern',...]]:
-        '''
-        attempt to find sequences the given nrr can be factored into
-        '''
-        debug = False
-        if debug:
-            print(f'input has terms {nrr.terms} and mult {nrr.mult}')
-        nrr_numer,nrr_denom = nrr.mult.as_integer_ratio()
-        nrr_terms_degree = max(b for _,b in nrr.terms)
-        if nrr_terms_degree < 2:
-            return []
-        factorization = NrrPattern.basicIntegralPolynomialFactor(nrr.terms)
-        for factor in factorization:
-            if debug:
-                print(f'has factor {factor}')
-            # each factor should be non constant
-            # otherwise common factors were not removed
-            assert max(b for _,b in factor) > 0
-        if len(factorization) < 2:
-            return []
-
-        assert len(factorization) == 2, \
-            'only supporting split to 2 factors for now'
-        factor1,factor2 = factorization
-
-        nrr_numer_divs = _divisors(nrr_numer)
-        nrr_denom_divs = _divisors(nrr_denom)
-        nrr_try_mults: set[Fraction] = set()
-        for n,d in itertools.product(nrr_numer_divs,nrr_denom_divs):
-            nrr_try_mults.add(Fraction(n,d))
-        if debug:
-            print(f'factors of mult to try are {nrr_try_mults}')
-
-        def _findNrr(terms:tuple[tuple[int,int],...]) -> 'None|NrrPattern':
-            for _,nrr_representative in nrr_classes:
-                if NrrPattern.compareShiftAndMultiply(
-                    nrr.base,terms,nrr_representative.terms) is not None:
-                    return nrr_representative
-            return None
-
-        f1_nrr = _findNrr(factor1)
-        f2_nrr = _findNrr(factor2)
-        if f1_nrr is not None and f2_nrr is not None:
-            if debug:
-                print(f'is product of {f1_nrr.exprString()} '
-                      f'(class {f1_nrr.disp_nice}) '
-                      f'and {f2_nrr.exprString()} '
-                      f'(class {f2_nrr.disp_nice})')
-            return [(f1_nrr,f2_nrr)]
-        return []
-
 def _nrrSortKeyHelper(base:int,nrr:NrrPattern,/):
     # define a sorting order to try to match stdkmd.net selections
+    # this also provides a way of selecting a "best" alternative
+    # 1. prioritize those ending in digits coprime to base
+    # 2. pick the smallest numerator (prefer no multiply)
+    # 3. pick the largest denominator (divide out factors if any)
+    # 4. pick by smallest polynomial coefficienst starting from leading
+
     numer,denom = nrr.mult.as_integer_ratio()
-    ret = (numer,-denom,nrr.terms)
-
-    # attempt without nmult
-    #terms = tuple((a*nrr.nmult,b) for a,b in nrr.terms)
-    #return (-nrr.denom,terms)
-    #return (terms,-nrr.denom)
-
-    # attempt by finding those with divisibility
-    #if sum(a for a,_ in nrr.terms) % (base-1) == 0:
-    #    return (1,nrr.nmult,-nrr.denom,nrr.terms)
-    #else:
-    #    return (0,nrr.nmult,-nrr.denom,nrr.terms)
+    ret = (numer,-denom,nrr.poly.coefs[::-1])
 
     # prioritizing those that end in digits coprime to base
     if math.gcd(base,nrr.trailing_digit) == 1:
-        ret = (0,) + ret
+        ret = (0,*ret)
     else:
-        ret = (1,) + ret
+        ret = (1,*ret)
 
-    return ret
+    # prioritize by sort tag
+    return (nrr.sort_tag,*ret)
 
 def _nrrSortKey(base:int,/):
     # create the sort key for a base
     return lambda nrr : _nrrSortKeyHelper(base,nrr)
 
 def createStandardNrrs(base:int,/,*,
-                       aaaaa:bool = True,
-                       aaaab:bool = True,
-                       abbbb:bool = True,
-                       aaaba:bool = True,
-                       abaaa:bool = True,
-                       abbba:bool = True,
-                       aabaa:bool = True,
-                       abbbc:bool = True,
+                       aaaaa_gen:bool = True,
+                       aaaaa_tag:int = 0,
+                       aaaab_gen:bool = True,
+                       aaaab_tag:int = 0,
+                       abbbb_gen:bool = True,
+                       abbbb_tag:int = 0,
+                       aaaba_gen:bool = True,
+                       aaaba_tag:int = 0,
+                       abaaa_gen:bool = True,
+                       abaaa_tag:int = 0,
+                       abbba_gen:bool = True,
+                       abbba_tag:int = 0,
+                       abbbc_gen:bool = True,
+                       abbbc_tag:int = 0,
+                       aabaa_gen:bool = True,
+                       aabaa_tag:int = 0,
                        # TODO maybe enable even palindrome
-                       aaabbaaa:bool = False,
+                       aaabbaaa_gen:bool = False,
+                       aaabbaaa_tag:int = 0,
                        run_checks:bool = False) \
         -> list[NrrPattern]:
     '''
@@ -653,8 +257,6 @@ def createStandardNrrs(base:int,/,*,
     - AA..AABAA..AA (near repdigit palindrome)
     - ABB..BBC (quasi repdigit)
     TODO consider adding even palindrome (AA..AABBAA..AA)
-
-    returns (list[NrrPattern],list[display string with ..],list[5 digit stdkmd format])
     '''
     assert 2 <= base <= 36
     digits = '0123456789abcdefghijklmnopqrstuvwxyz'
@@ -664,40 +266,40 @@ def createStandardNrrs(base:int,/,*,
     nrrs: list[NrrPattern] = []
     for av,ad in d1:
         # AA..AA
-        if aaaaa:
-            nrrs.append(NrrPattern(base,f'{ad}*'))
+        if aaaaa_gen:
+            nrrs.append(NrrPattern(base,f'{ad}*',aaaaa_tag))
 
         for bv,bd in d0:
             if av != bv:
                 if bv != 0:
                     # AA..AAB
-                    if aaaab:
-                        nrrs.append(NrrPattern(base,f'{ad}*{bd}'))
+                    if aaaab_gen:
+                        nrrs.append(NrrPattern(base,f'{ad}*{bd}',aaaab_tag))
                     # ABB..BB
-                    if abbbb:
-                        nrrs.append(NrrPattern(base,f'{ad}{bd}*'))
+                    if abbbb_gen:
+                        nrrs.append(NrrPattern(base,f'{ad}{bd}*',abbbb_tag))
                 # AA..AABA
-                if aaaba:
-                    nrrs.append(NrrPattern(base,f'{ad}*{bd}{ad}'))
+                if aaaba_gen:
+                    nrrs.append(NrrPattern(base,f'{ad}*{bd}{ad}',aaaba_tag))
                 # ABAA..AA
-                if abaaa:
-                    nrrs.append(NrrPattern(base,f'{ad}{bd}{ad}*'))
+                if abaaa_gen:
+                    nrrs.append(NrrPattern(base,f'{ad}{bd}{ad}*',abaaa_tag))
                 # ABB..BBA
-                if abbba:
-                    nrrs.append(NrrPattern(base,f'{ad}{bd}*{ad}'))
+                if abbba_gen:
+                    nrrs.append(NrrPattern(base,f'{ad}{bd}*{ad}',abbba_tag))
                 # AA..AABAA..AA
-                if aabaa:
-                    nrrs.append(NrrPattern(base,f'{ad}*{bd}{ad}*'))
+                if aabaa_gen:
+                    nrrs.append(NrrPattern(base,f'{ad}*{bd}{ad}*',aabaa_tag))
 
                 # TODO maybe include AA..AABBAA..AA
-                if aaabbaaa:
-                    nrrs.append(NrrPattern(base,f'{ad}*{bd}{bd}{ad}*'))
+                if aaabbaaa_gen:
+                    nrrs.append(NrrPattern(base,f'{ad}*{bd}{bd}{ad}*',aaabbaaa_tag))
 
                 for cv,cd in d1:
                     if cv != av and cv != bv:
                         # ABB..BBC
-                        if abbbc:
-                            nrrs.append(NrrPattern(base,f'{ad}{bd}*{cd}'))
+                        if abbbc_gen:
+                            nrrs.append(NrrPattern(base,f'{ad}{bd}*{cd}',abbbc_tag))
 
     if run_checks:
         for nrr in nrrs:
@@ -705,69 +307,216 @@ def createStandardNrrs(base:int,/,*,
 
     return nrrs
 
-def groupNrrsByEquivalence(nrrs:list[NrrPattern],/,*,
-                           run_extra_checks:bool=False) \
-                            -> list[list[NrrPattern]]:
+class NrrCollection:
     '''
-    group nrr patterns by equivalence up to multiplier and index offset
-    each list returned is an equivalence class
-
-    this class uses a quadratic time algorithm comparing (almost) all pairs
-    a general linear time algorithm with identifier keys is hard to create
-
-    choosing to prefer mathematical rigor to "good enough in practice"
+    represents a selection of NrrPattern objects
+    - manages grouping them by uniqueness up to offset and multiplier
+    - using quadratic time algorithm by comparing pairs
     '''
-    ret: list[list[NrrPattern]] = []
-    for nrr in nrrs:
+
+    def __init__(self,base:int,/):
+        assert 2 <= base <= 36
+        self.base = base
+        # each "set" of NrrPattern is a list
+        # starting with the representative pattern
+        # the representative is determined by the sorting order
+        self.nrrsets: list[list[NrrPattern]] = []
+        self.compkey = _nrrSortKey(base)
+
+    def add(self,nrr:NrrPattern,/):
+        '''
+        add nrr into the correct uniqueness set if it does not exist yet
+        - this takes linear time, so quadratic to deduplicate all
+        - TODO it may be reasonable to store a few extra offsets
+          which in practice may be good enough to deduplicate in linear time
+          by choosing an offset range [-M,M], maybe M=5 is reasonable
+        '''
+        assert self.base == nrr.base
         added = False
-        for seq_class in ret:
-            comp = NrrPattern.compareShiftAndMultiply(
-                nrr.base,nrr.terms,seq_class[0].terms)
-            if comp is not None: # equivalent to this sequence class
-                seq_class.append(nrr)
-                added = True
-        if not added: # did not match a sequence class so put it in a new one
-            ret.append([nrr])
+        for nrrset in self.nrrsets:
+            comp1 = nrr.poly.compareShiftAndMultiply(nrrset[0].poly)
+            comp2 = nrrset[0].poly.compareShiftAndMultiply(nrr.poly)
+            if comp1 is not None:
+                assert comp2 is not None
+                k1,s1 = comp1
+                k2,s2 = comp2
+                assert s1 + s2 == 0
+                assert k1 * k2 == 1
+                if not any(nrr == item for item in nrrset):
+                    nrrset.append(nrr)
+                    nrrset.sort(key=self.compkey)
+                    added = True
+                    break
+            else:
+                assert comp2 is None
+        if not added:
+            self.nrrsets.append([nrr])
 
-    if run_extra_checks:
-        for seq_class in ret:
-            for i,nrr1 in enumerate(seq_class):
-                for j in range(i,len(seq_class)):
-                    nrr2 = seq_class[j]
-                    comp1 = NrrPattern.compareShiftAndMultiply(
-                        nrr1.base,nrr1.terms,nrr2.terms)
-                    comp2 = NrrPattern.compareShiftAndMultiply(
-                        nrr2.base,nrr2.terms,nrr1.terms)
+    def fullCheck(self,/):
+        '''
+        assert function for checking some conditions
+        - quadratic time
+        '''
+        map2index: dict[NrrPattern,int] = dict()
+        for i,nrrset in enumerate(self.nrrsets):
+            for nrr in nrrset:
+                map2index[nrr] = i
+        nrrlist = list(map2index)
+        for i,nrr1 in enumerate(nrrlist):
+            for j in range(i,len(nrrlist)):
+                nrr2 = nrrlist[j]
+                assert nrr1.base == nrr2.base
+                assert i == j or nrr1.re_str != nrr2.re_str
+                if map2index[nrr1] == map2index[nrr2]:
+                    comp1 = nrr1.poly.compareShiftAndMultiply(nrr2.poly)
+                    comp2 = nrr2.poly.compareShiftAndMultiply(nrr1.poly)
                     assert comp1 is not None
                     assert comp2 is not None
-                    assert comp1[0] * comp2[0] == 1
-                    assert comp1[1] == -comp2[1]
+                    k1,s1 = comp1
+                    k2,s2 = comp2
+                    assert s1 + s2 == 0
+                    assert k1 * k2 == 1
+                    if i == j:
+                        assert s1 == 0
+                        assert k1 == 1
+                    # nrr1(n) = k1 * nrr2(n + s1)
+                    n0 = max(0,-s1)
+                    k1n,k1d = (k1*nrr1.mult/nrr2.mult).as_integer_ratio()
+                    for n in range(n0,n0+10):
+                        quot,rem = divmod(k1n*nrr2(n+s1),k1d)
+                        assert rem == 0
+                        assert nrr1(n) == quot
+                    # nrr2(n) = k2 * nrr1(n + s2)
+                    n0 = max(0,-s2)
+                    k2n,k2d = (k2*nrr2.mult/nrr1.mult).as_integer_ratio()
+                    for n in range(n0,n0+10):
+                        quot,rem = divmod(k2n*nrr1(n+s2),k2d)
+                        assert rem == 0
+                        assert nrr2(n) == quot
+                else:
+                    assert nrr1.poly.compareShiftAndMultiply(nrr2.poly) is None
+                    assert nrr2.poly.compareShiftAndMultiply(nrr1.poly) is None
 
-    return ret
+    def findByStr(self,s:str,/) -> None|NrrPattern:
+        '''
+        search the collection for the matching pattern
+        - supports regex format and the nice stdkmd display string
+        - returns only 1 if found (there should never be more than 1)
+        '''
+        for nrrset in self.nrrsets:
+            for nrr in nrrset:
+                if nrr.re_str == s or _regexToStdkmd(nrr.re_str) == s:
+                    return nrr
+        return None
 
-def findNrrByPattern(nrrs:list[NrrPattern],p:str,/) -> None|NrrPattern:
-    ''' find in a list by regex or stdkmd style pattern identifier '''
-    for nrr in nrrs:
-        if nrr.regex.pattern == p or _regexToStdkmd(nrr.regex.pattern) == p:
-            return nrr
-    return None
+    def findByPoly(self,p:NrrPoly,/) -> list[NrrPattern]:
+        '''
+        search the collection for all patterns with the given polynomial
+        - this does not check multipliers
+        '''
+        assert p.base == self.base
+        ret: list[NrrPattern] = []
+        for nrrset in self.nrrsets:
+            for nrr in nrrset:
+                if nrr.poly == p:
+                    ret.append(nrr)
+        return ret
+
+    def findByFormula(self,m:Fraction,p:NrrPoly,/) -> None|NrrPattern:
+        '''
+        search the collection for a pattern with the given formula
+        - this does not consider others equivalent by shift/multiplier
+        - formula must match exactly as provided in the arguments
+        '''
+        assert p.base == self.base
+        for nrrset in self.nrrsets:
+            for nrr in nrrset:
+                if nrr.mult == m and nrr.poly == p:
+                    return nrr
+        return None
+
+    def findByEquivalence(self,p:NrrPoly,/) -> None|tuple[NrrPattern,...]:
+        '''
+        search the collection for the equivalence class
+        matching the given polynomial
+        '''
+        assert p.base == self.base
+        for nrrset in self.nrrsets:
+            if nrrset[0].poly.compareShiftAndMultiply(p) is not None:
+                return tuple(nrrset)
+        return None
+
+    def factorByEquivalence(self,nrr:NrrPattern,/) \
+            -> tuple[None|tuple[NrrPattern,...],...]:
+        '''
+        uses this collection to split nrr into factors if possible
+        - each factor is represented by the equivalence class
+        - the factors may not match a stored pattern exactly
+        '''
+        assert nrr.base == self.base
+        nrr_factors = nrr.poly.factor()
+        assert nrr_factors[0] == NrrPoly(self.base,1)
+        return tuple(self.findByEquivalence(factor)
+                     for factor in nrr_factors[1:])
+
+    def factorByFormula(self,nrr:NrrPattern,/) \
+            -> tuple[None|tuple[Fraction,int,NrrPattern],...]:
+        '''
+        factors by equivalence and then creates a formula in terms of the
+        representative element for each equivalence class
+        - each found sequence becomes (k,s,f(n)) meaning the component
+          of the product is k * f(n+s) (k is a Fraction, s is an int)
+        - the components multiply to the polynomial only, nrr.mult must
+          also be included to get the correct result
+        '''
+        assert nrr.base == self.base
+        nrr_factors = nrr.poly.factor()
+        assert nrr_factors[0] == NrrPoly(self.base,1)
+        nrr_factors = nrr_factors[1:]
+        nrr_equiv = tuple(self.findByEquivalence(factor)
+                          for factor in nrr_factors)
+        ret: tuple[None|tuple[Fraction,int,NrrPattern],...] = ()
+        for i,nrr_factor in enumerate(nrr_factors):
+            nrr_set = nrr_equiv[i]
+            if nrr_set is None:
+                ret = (*ret,None)
+                continue
+            comp = nrr_factor.compareShiftAndMultiply(nrr_set[0].poly)
+            assert comp is not None
+            k,s = comp
+            ret = (*ret,(k/nrr_set[0].mult,s,nrr_set[0]))
+        if all(nrr_data is not None for nrr_data in ret):
+            n0 = max(0,*(-s0 for _,s0,_ in ret)) # type:ignore
+            for n in range(n0,n0+10):
+                mult = Fraction(1)
+                prod = 1
+                for k,s,nrr_rep in ret: # type:ignore
+                    mult *= k
+                    prod *= nrr_rep(n+s)
+                mult *= nrr.mult
+                quot,rem = divmod(mult.numerator*prod,mult.denominator)
+                assert rem == 0
+                assert quot == nrr(n)
+        return ret
 
 def analyzeStdkmd():
     '''
     perform an analysis of nrr patterns on stdkmd.net
     '''
-    nrrs = createStandardNrrs(10,aaabbaaa=False,run_checks=True)
-    print(f'created {len(nrrs)} raw nrr patterns')
-    for nrr in nrrs:
-        print(f'    {nrr.disp_nice} ({nrr.disp_stdkmd}) -> {nrr.exprString()}')
-        #nrr.checkWithEval(100)
+    raw_nrrs = createStandardNrrs(10,aaabbaaa_gen=False,run_checks=True)
+    print(f'created {len(raw_nrrs)} raw nrr patterns')
+    assert len(set(nrr.nice_str for nrr in raw_nrrs)) == len(raw_nrrs)
+    assert len(set(nrr.disp_stdkmd for nrr in raw_nrrs)) == len(raw_nrrs)
+    for nrr in raw_nrrs:
+        print(f'    {nrr.nice_str} ({nrr.disp_stdkmd}) -> {nrr.exprString()}')
         nrr.checkWithEval()
-    seq_classes = groupNrrsByEquivalence(nrrs,run_extra_checks=True)
-    print(f'found {len(seq_classes)} equivalence classes')
-    assert len(set(nrr.disp_nice for nrr in nrrs)) == len(nrrs)
-    assert len(set(nrr.disp_stdkmd for nrr in nrrs)) == len(nrrs)
-    #for seq_class in seq_classes:
-    #    print(f'    {' '.join(nrr.disp_stdkmd for nrr in seq_class)}')
+    nrrcol = NrrCollection(10)
+    for nrr in raw_nrrs:
+        nrrcol.add(nrr)
+    print(f'found {len(nrrcol.nrrsets)} equivalence classes')
+    nrrcol.fullCheck()
+    #for nrrset in nrrcol.nrrsets:
+    #    print(f'    {' '.join(nrr.disp_stdkmd for nrr in nrrset)}')
 
     # stdkmd patterns (11111 and 10001 have pages in different format)
     stdkmd_list = [
@@ -851,10 +600,10 @@ def analyzeStdkmd():
         f'{d} ({len([p for p in stdkmd_list if p[0] == d])})' for d in '123456789')}')
 
     seq_stdkmd: list[list[str]] = []
-    for seq_class in seq_classes:
+    for nrrset in nrrcol.nrrsets:
         seq_stdkmd.append([])
         for p in stdkmd_list:
-            if p in (nrr.disp_stdkmd for nrr in seq_class):
+            if p in (nrr.disp_stdkmd for nrr in nrrset):
                 seq_stdkmd[-1].append(p)
 
     assert max(len(s) for s in seq_stdkmd) == 1, 'something is duplicated on stdkmd.net'
@@ -864,16 +613,16 @@ def analyzeStdkmd():
     count_same = 0
     count_all = 0
     seq_class_representatives: list[NrrPattern] = []
-    for i,seq_class in enumerate(seq_classes):
-        nrr_choice = min(seq_classes[i],key=_nrrSortKey(10))
+    for i,nrrset in enumerate(nrrcol.nrrsets):
+        nrr_choice = nrrset[0]
         seq_class_representatives.append(nrr_choice)
         out_str = ' '.join(f'(\033[94m{nrr.disp_stdkmd}\033[0m)' if nrr == nrr_choice
-                           else nrr.disp_stdkmd for nrr in seq_class)
+                           else nrr.disp_stdkmd for nrr in nrrset)
         if len(seq_stdkmd[i]) == 0:
-            not_on_stdkmd.append((f'not on stdkmd: {out_str}',seq_class,nrr_choice))
+            not_on_stdkmd.append((f'not on stdkmd: {out_str}',nrrset,nrr_choice))
         else:
             stdkmd_pattern = seq_stdkmd[i][0]
-            nrr_stdkmd = [nrr for nrr in seq_class if stdkmd_pattern == nrr.disp_stdkmd][0]
+            nrr_stdkmd = [nrr for nrr in nrrset if stdkmd_pattern == nrr.disp_stdkmd][0]
             selected_same = (stdkmd_pattern == nrr_choice.disp_stdkmd)
             same_note = f'(\033[{['91','92'][selected_same]}m'\
                 f'{['diff','same'][selected_same]}\033[0m)'
@@ -883,34 +632,57 @@ def analyzeStdkmd():
                 out_str += f' stdkmd({nrr_stdkmd.exprString()})'
                 out_str += '\033[0m'
             yes_on_stdkmd[stdkmd_pattern] = (f'{stdkmd_pattern} {same_note}: {out_str}',
-                                             selected_same,seq_class,nrr_choice)
+                                             selected_same,nrrset,nrr_choice)
             count_all += 1
             if selected_same:
                 count_same += 1
-    #nrr_map: dict[tuple[Fraction,tuple[tuple[int,int],...]],NrrPattern] = dict()
-    #for nrr in nrrs:
-    #    nrr_map[(nrr.mult,nrr.terms)] = nrr
-    nrr_classes = list((seq_classes[i],seq_class_representatives[i])
-                       for i in range(len(seq_classes)))
+
+    def _printSetInfo(nrr_selected):
+        factors = nrrcol.factorByFormula(nrr_selected)
+        if len(factors) >= 2:
+            out_str = f'    \033[93mfactors to: {nrr_selected.mult}'
+            for factor in factors:
+                if factor is None:
+                    out_str += f' * (none)'
+                    continue
+                k,s,nrr_rep = factor
+                out_str += f' * ( {k} * [{nrr_rep.disp_stdkmd}](n{s:+}) )'
+            out_str += f'\033[0m'
+            print(out_str)
+            out_str = f'    \033[93mexpr factor: {nrr_selected.mult}'
+            for factor in nrr_selected.poly.factor():
+                out_str += f' * ({factor})'
+            out_str += f'\033[0m'
+            print(out_str)
 
     for stdkmd_pattern in sorted(yes_on_stdkmd):
         msg,selected_same,nrr_list,nrr_selected = yes_on_stdkmd[stdkmd_pattern]
         print(msg)
-        for nrr in nrr_list:
-            print(f'    {nrr.disp_stdkmd}: {nrr.exprString()}')
-        factorizations = NrrPattern.factorSequenceIntoOthers(nrr_selected,nrr_classes)
-        for factorization in factorizations:
-            print(f'    \033[93mproduct of classes '
-                  f'({' '.join(nrr.disp_stdkmd for nrr in factorization)})\033[0m')
+        for i,nrr in enumerate(nrr_list):
+            comp = nrr.poly.compareShiftAndMultiply(nrr_list[0].poly)
+            assert comp is not None
+            k,s = comp
+            k = k * nrr.mult / nrr_list[0].mult
+            print(f'    {nrr.disp_stdkmd if i > 0
+                         else f'\033[94m{nrr.disp_stdkmd}\033[0m'}: '
+                  f'{nrr.exprString()} = '
+                  + ('f(n)' if i == 0 else f'({k}) * f(n{s:+})'))
+        _printSetInfo(nrr_selected)
+        print()
 
     for msg,nrr_list,nrr_selected in not_on_stdkmd:
         print(msg)
-        for nrr in nrr_list:
-            print(f'    {nrr.disp_stdkmd}: {nrr.exprString()}')
-        factorizations = NrrPattern.factorSequenceIntoOthers(nrr_selected,nrr_classes)
-        for factorization in factorizations:
-            print(f'    \033[93mproduct of classes '
-                  f'({' '.join(nrr.disp_stdkmd for nrr in factorization)})\033[0m')
+        for i,nrr in enumerate(nrr_list):
+            comp = nrr.poly.compareShiftAndMultiply(nrr_list[0].poly)
+            assert comp is not None
+            k,s = comp
+            k = k * nrr.mult / nrr_list[0].mult
+            print(f'    {nrr.disp_stdkmd if i > 0
+                         else f'\033[94m{nrr.disp_stdkmd}\033[0m'}: '
+                  f'{nrr.exprString()} = '
+                  + ('f(n)' if i == 0 else f'({k}) * f(n{s:+})'))
+        _printSetInfo(nrr_selected)
+        print()
 
     print(f'selected same pattern for {count_same}/{count_all}')
 
@@ -935,40 +707,3 @@ if __name__ == '__main__':
     else:
         parser.print_usage(sys.stderr)
         exit(1)
-
-########
-########
-########
-
-'''
-specify base and pattern for basic output example
-
-import sys
-base = int(sys.argv[1])
-pattern = sys.argv[2]
-nrr = NrrPattern(base,pattern)
-expr = str(nrr.exprString())
-print(expr)
-print(expr.replace('**','^').replace('//','/'))
-print(nrr.latexString())
-nrr.checkWithEval(10,True)
-nrr.checkWithEval(100)
-'''
-
-'''
-specific pair comparison analysis example
-
-print('analyzing sequence pair comparison')
-#nrr1 = _findNrrByPattern('15555')
-#nrr2 = _findNrrByPattern('31111')
-nrr1 = _findNrrByPattern('18884')
-nrr2 = _findNrrByPattern('94442')
-assert nrr1 is not None
-assert nrr2 is not None
-print(nrr1.exprString())
-print(nrr2.exprString())
-NrrPattern.DEBUG = True
-NrrPattern.DEBUG_L = True
-c = NrrPattern.compareShiftAndMultiply(base,nrr1.terms,nrr2.terms)
-print(f'compare result: {c}')
-'''
