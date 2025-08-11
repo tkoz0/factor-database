@@ -202,7 +202,24 @@ class IntPoly:
         return IntPoly(c,*(self.coefs[i] // (i+1)
                            for i in range(len(self.coefs))))
 
-    def factor(self,/) -> tuple['IntPoly',...]:
+    def factor(self,try_quadratic=False,/) -> tuple['IntPoly',...]:
+        '''
+        attempts to (partially) factor the polynomial
+
+        a linear factor c*x - d must satisfy
+        - c divides leading coefficient
+        - d divides constant
+
+        optionally can try to also find quadratic factors
+        - disabled by default because it is much slower
+
+        irreducible factors may be missed but the search for linear and
+        quadratic factors should find all of those if they exist
+
+        returns a constant polynomial for the common coefficient factor
+        (which could be 1) followed by each factor found
+        - all multiply to the original polynomial
+        '''
         debug = False
         if debug:
             print(f'factoring {self}')
@@ -259,7 +276,7 @@ class IntPoly:
                             break
                     except:
                         pass
-                if poly.degree() >= 4 and not factored:
+                if try_quadratic and poly.degree() >= 4 and not factored:
                     # also try to find quadratic factors
                     # factor p(x)=q(x)r(x) where p(x) degree n >= 4
                     # and q(x)=a*x^2+b*x+c
@@ -314,6 +331,10 @@ class IntPoly:
                 if not factored:
                     ret_factors.append(poly)
                     break
+        mult_test = IntPoly(1)
+        for ret_factor in ret_factors:
+            mult_test *= ret_factor
+        assert mult_test == self
         return tuple(ret_factors)
 
 if __name__ == '__main__':
@@ -455,10 +476,13 @@ if __name__ == '__main__':
     assert IP(-1,0,1).factor() == (IP(1),IP(1,1),IP(-1,1))
     assert IP(1,0,-1).factor() == (IP(-1),IP(1,1),IP(-1,1))
     assert IP(63,23,2).factor() == (IP(1),IP(7,1),IP(9,2))
-    assert IP(-1,4,0,-11,6).factor() == (IP(1),IP(-1,2),IP(-1,3),IP(-1,-1,1))
-    assert IP(-56,82,-26,-2,12).factor() == (IP(2),IP(-4,3,2),IP(7,-5,3))
-    assert IP(-1,-1,5,4,0,5).factor() == (IP(1),IP(-1,0,5),IP(1,1,0,1))
+    assert IP(-1,4,0,-11,6).factor(True) \
+        == (IP(1),IP(-1,2),IP(-1,3),IP(-1,-1,1))
+    assert IP(-56,82,-26,-2,12).factor(True) \
+        == (IP(2),IP(-4,3,2),IP(7,-5,3))
+    assert IP(-1,-1,5,4,0,5).factor(True) \
+        == (IP(1),IP(-1,0,5),IP(1,1,0,1))
     assert IP(-1,-1,0,0,0,1).factor() == (IP(1),IP(-1,-1,0,0,0,1))
     # this last one takes a while but is a more rigorous quadratic factor test
-    #assert IP(-630,1390,260,-1230,-60,180).factor() \
+    #assert IP(-630,1390,260,-1230,-60,180).factor(True) \
     #    == (IP(10),IP(-7,10,6),IP(9,-7,-6,3))
