@@ -1,5 +1,25 @@
 
+from fractions import Fraction
+
 from intpoly import IntPoly
+
+def _basepow(base:int,frac:Fraction) -> int|None:
+    # finds p so base**p == frac
+    numer,denom = frac.as_integer_ratio()
+    if numer <= 0:
+        return None
+    if numer < denom:
+        ret = _basepow(base,1/frac)
+        return None if ret is None else -ret
+    if denom != 1:
+        return None
+    basepow_exp,basepow_val = 0,1
+    while basepow_val <= numer:
+        if basepow_val == numer:
+            return basepow_exp
+        basepow_exp += 1
+        basepow_val *= base
+    return None
 
 class NrrPoly:
     '''
@@ -12,6 +32,7 @@ class NrrPoly:
         assert 2 <= base <= 36
         self.base = base
         self.poly = IntPoly(*coefs)
+        self.coefs = self.poly.coefs
 
     def degree(self,/) -> int:
         return self.poly.degree()
@@ -127,6 +148,80 @@ class NrrPoly:
     def factor(self,/) -> tuple['NrrPoly',...]:
         return tuple(NrrPoly(self.base,*poly.coefs)
                      for poly in self.poly.factor())
+
+    def compareShiftAndMultiply(self,other:'NrrPoly',/) \
+            -> None|tuple[Fraction,int]:
+        '''
+        checks if sequences are identical up to constant multiple and offset
+        returns none if they are not, otherwise the multiply and shift
+
+        let f be self and g be the other polynomial
+        looks for K,s so f(n) = K * g(n+s) and returns (K,s)
+
+        if a.compareShiftAndMultiply(b) returns (K,s)
+        then b.compareShiftAndMultiply(a) returns (1/K,-s)
+        '''
+        if self.base != other.base or len(self.coefs) != len(other.coefs):
+            return None
+        # locations of nonzero coefficients must match
+        for i in range(len(self.coefs)):
+            if self.coefs[i] == 0 and other.coefs[i] != 0:
+                return None
+            if self.coefs[i] != 0 and other.coefs[i] == 0:
+                return None
+        # collect nonzero terms, (a,b) means a*base**(b*n)
+        left = [(self.coefs[i],i) for i in range(len(self.coefs))
+                if self.coefs[i] != 0] # for f(n)
+        right = [(other.coefs[i],i) for i in range(len(other.coefs))
+                 if other.coefs[i] != 0] # for g(n)
+        assert len(left) > 0 and len(right) > 0
+        assert len(left) == len(right)
+        if len(left) == 1: # same term, multiply and no shift
+            return Fraction(left[0][0],right[0][0]),0
+        # order terms from largest to smallest
+        left = left[::-1]
+        right = right[::-1]
+        # find offset from first 2 terms
+        i,j = left[0][1],left[1][1]
+        assert i > j
+        p = _basepow(self.base,
+                     Fraction(left[0][0]*right[1][0],
+                              left[1][0]*right[0][0]))
+        if p is None or p % (i-j) != 0:
+            return None
+        s = p // (i-j)
+        # now check that we get the same s for each i,j pair
+        for lefti in range(len(left)):
+            ai,i = left[lefti]
+            bi = right[lefti][0]
+            for rightj in range(lefti+1,len(right)):
+                bj,j = right[rightj]
+                aj = left[rightj][0]
+                assert i > j
+                p = _basepow(self.base,Fraction(ai*bj,aj*bi))
+                if p is None or p % (i-j) != 0 or p // (i-j) != s:
+                    return None
+        # then determine the multiplier
+        i = left[0][1]
+        if s < 0:
+            K = Fraction(left[0][0]*self.base**(-i*s),
+                         right[0][0])
+        else:
+            K = Fraction(left[0][0],
+                         right[0][0]*self.base**(i*s))
+        # and be sure each index gets the same result
+        for lefti in range(len(left)):
+            ai,i = left[lefti]
+            bi = right[lefti][0]
+            if s < 0:
+                K2 = Fraction(ai*self.base**(-i*s),
+                              bi)
+            else:
+                K2 = Fraction(ai,
+                              bi*self.base**(i*s))
+            if K != K2:
+                return None
+        return K,s
 
 if __name__ == '__main__':
     # NrrPoly testing
