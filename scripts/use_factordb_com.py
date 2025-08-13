@@ -35,6 +35,6 @@ for i in itqdm:
             break
         except Exception as e:
             itqdm.write(f'exception {type(e)} {str(e)}')
-            delay = min(delay*2,MAX_DELAY)
+            delay = min(max(1,delay*2),MAX_DELAY)
             itqdm.write(f'waiting {delay} seconds')
             sleep(delay)
