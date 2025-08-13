@@ -10,12 +10,12 @@ from tqdm import tqdm
 scriptdir = os.path.dirname(__file__)
 sys.path.append(f'{scriptdir}/..')
 
-import app.database as db
+import app.database.numbers as db
 
 for line in tqdm(sys.stdin.read().splitlines()):
     # first integer on the line
     i = int(line.split()[0])
-    row = db.getFactorByID(i)
+    row = db.getFactorById(i)
     assert row is not None
     if row.primality == db.Primality.PRIME:
         continue

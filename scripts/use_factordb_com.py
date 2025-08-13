@@ -12,7 +12,7 @@ from tqdm import tqdm
 scriptdir = os.path.dirname(__file__)
 sys.path.append(f'{scriptdir}/..')
 
-import app.database as db
+import app.database.factordbCom as db
 
 MAX_DELAY = 60
 

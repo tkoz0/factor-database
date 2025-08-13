@@ -10,7 +10,7 @@ import sys
 scriptdir = os.path.dirname(__file__)
 sys.path.append(f'{scriptdir}/..')
 
-import app.database as db
+import app.database.numbers as db
 
 parser = argparse.ArgumentParser()
 parser.add_argument('type',type=str,help='unknown,composite,probable')
