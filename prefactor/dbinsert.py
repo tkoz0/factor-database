@@ -21,7 +21,8 @@ parser.add_argument('-i','--input',help='show input json lines',action='store_tr
 args = parser.parse_args()
 
 if not args.dry_run:
-    import app.database as db
+    from app.database.numbers import addNumber
+    from app.database.categories import createCategoryNumber
 
 for i,line in enumerate(sys.stdin):
     if args.input:
@@ -44,7 +45,7 @@ for i,line in enumerate(sys.stdin):
         assert all(gmpy2.is_prime(f) for f in factor_list if f < 2**64) # type:ignore
         assert all(value % f == 0 for f in factor_list)
         if not args.dry_run:
-            added,nrow = db.addNumber(value,factor_list)
+            added,nrow = addNumber(value,factor_list)
             if added:
                 print(f'\033[92mindex {i} added to database, number id {nrow.id}\033[0m')
             else:
@@ -55,7 +56,7 @@ for i,line in enumerate(sys.stdin):
         path = tuple(p for p in path.split('/') if p)
         if not args.dry_run:
             try:
-                db.createCategoryNumber(path,index,value,expr)
+                createCategoryNumber(path,index,value,expr)
                 print(f'\033[32msuccessfully added index {i} to category\033[0m')
             except Exception as e:
                 print(f'\033[31mfailed to add to category: {e}\033[0m')
