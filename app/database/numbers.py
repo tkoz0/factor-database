@@ -295,31 +295,21 @@ def setFactorComposite(i:int,test:bool,/):
                         (num_row.id,))
         con.commit()
 
-def _getFactorFactorizationHelper(row:FactorRow|None,
+def _getFactorFactorizationHelper(row:FactorRow,
                                   con:psycopg.Connection,/) \
-        -> None|list[tuple[int,int,int]]:
+        -> list[tuple[int,int,int]]:
     # helper function to get factorization of a factor
-    if row is None:
-        return None
+    if row.f1_id is None: # does not split into 2 factors, return itself
+        assert row.f2_id is None, f'internal error: row={row}'
+        return [(row.value,row.primality,row.id)]
 
-    ret: list[tuple[int,int,int]] = []
-    f_row = row
-    while True:
-
-        if f_row.f1_id is None: # does not split into 2 factors
-            assert f_row.f2_id is None, f'internal error: f_row={f_row}'
-            ret.append((f_row.value,f_row.primality,f_row.id))
-            break
-
-        else: # splits into 2 factors, append smaller
-            assert f_row.f2_id is not None, f'internal error: f_row={f_row}'
-            f1_row = _getFactorById(f_row.f1_id,con)
-            f2_row = _getFactorById(f_row.f2_id,con)
-            assert f1_row is not None, f'internal error: f_row={f_row}'
-            assert f2_row is not None, f'internal error: f_row={f_row}'
-            ret.append((f1_row.value,f1_row.primality,f1_row.id))
-            # repeat splitting step on larger factor
-            f_row = f2_row
+    assert row.f2_id is not None, f'internal error: row={row}'
+    f1_row = _getFactorById(row.f1_id,con)
+    f2_row = _getFactorById(row.f2_id,con)
+    assert f1_row is not None, f'internal error: row={row}'
+    assert f2_row is not None, f'internal error: row={row}'
+    ret = _getFactorFactorizationHelper(f1_row,con) \
+        + _getFactorFactorizationHelper(f2_row,con)
 
     if DEBUG_EXTRA:
         prod = 1
@@ -343,8 +333,9 @@ def _getNumberFactorizationHelper(n_row:NumberRow|None,
     cof_id = n_row.cof_id
 
     # large factors
-    ret2 = None if cof_id is None else \
-        _getFactorFactorizationHelper(_getFactorById(cof_id,con),con)
+    cof_row = None if cof_id is None else _getFactorById(cof_id,con)
+    ret2 = None if cof_row is None else \
+        _getFactorFactorizationHelper(cof_row,con)
     ret = ret1 if ret2 is None else ret1+ret2
 
     if DEBUG_EXTRA:
@@ -353,7 +344,8 @@ def _getNumberFactorizationHelper(n_row:NumberRow|None,
             prod *= f
         assert prod == n_row.value, f'internal error: n_row={n_row}'
 
-    return ret
+    # sort by numeric value increasing
+    return sorted(ret, key = lambda k: k[0])
 
 def getNumberFactorizationByValue(n:int,/) \
         -> None|list[tuple[int,int,None|int]]:
@@ -423,7 +415,7 @@ def _tryFactorById(i:int,fs:Iterable[int],/):
             for g in factors:
                 try:
                     addFactor(g,f)
-                except:
+                except FdbException:
                     pass
 
 def addNumber(n:int,fs:Iterable[int]=[],/) -> tuple[bool,NumberRow]:
@@ -537,7 +529,7 @@ def _tryFactorByValue(n:int,fs:Iterable[int],/):
             # if successful, take the same list and try on the cofactor
             _tryFactorByValue(n//f,fs)
             break
-        except:
+        except FdbException:
             pass
 
 def _getMultiplesOfFactorById(mults:dict[int,int],i:int|None,
@@ -609,10 +601,10 @@ def addFactor(n:int,f:int,/):
             # get existing factors nf1*nf2 == n
             cur = con.execute("select value from factors where id = %s;",
                               (n_row.f1_id,))
-            nf1 = _dbnum_to_int(cur.fetchone()[0]) # type:ignore
+            nf1 = fdbNumberToInt(cur.fetchone()[0]) # type:ignore
             cur = con.execute("select value from factors where id = %s;",
                               (n_row.f2_id,))
-            nf2 = _dbnum_to_int(cur.fetchone()[0]) # type:ignore
+            nf2 = fdbNumberToInt(cur.fetchone()[0]) # type:ignore
 
             if DEBUG_EXTRA:
                 assert nf1 * nf2 == n, 'internal error'
@@ -820,6 +812,7 @@ def completeNumber(i:int,/) -> bool:
         cof_id: int|None = None
         if cof != 1:
             cof_id = _addFactor(cof).id
+            _tryFactorById(cof_id,[f for f,_,_ in factors])
 
         spf2b,spf4b,spf8b = spfsToFdbFormat(spfs)
         con.execute("update numbers set spf2 = %s, spf4 = %s, spf8 = %s, "
@@ -859,7 +852,7 @@ def makeFactorProgress(i:int,/):
                     f'has small prime factor {factor}')
             try:
                 addFactor(db_fac_value,factor)
-            except:
+            except FdbException:
                 pass
             break
 
