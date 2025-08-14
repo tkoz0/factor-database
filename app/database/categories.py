@@ -246,10 +246,14 @@ def createCategory(path:tuple[str,...]|str,/,is_table:bool,
 
 # prepare queries for the columns that may be updated in categories table
 _SET_CATEGORY_COLUMN_QUERIES = dict()
+_GET_CATEGORY_COLUMN_QUERIES = dict()
 for column in ('title','info','expr'):
     query = psycopg.sql.SQL("update categories set {} = %s where id = %s;")
     query = query.format(psycopg.sql.Identifier(column))
     _SET_CATEGORY_COLUMN_QUERIES[column] = query
+    query = psycopg.sql.SQL("select {} from categories where id = %s;")
+    query = query.format(psycopg.sql.Identifier(column))
+    _GET_CATEGORY_COLUMN_QUERIES[column] = query
 
 def _setCategoryColumn(pathOrId:int|tuple[str,...]|str,value,column:str,/):
     if isinstance(pathOrId,str):
@@ -276,6 +280,28 @@ def _setCategoryColumn(pathOrId:int|tuple[str,...]|str,value,column:str,/):
             logDatabaseInfoMessage(
                 f'updated {column} for category id {pathOrId}')
 
+def _getCategoryColumn(pathOrId:int|tuple[str,...]|str,column:str,/):
+    if isinstance(pathOrId,str):
+        pathOrId = stringToPath(pathOrId)
+
+    with FdbConnection() as con:
+        if isinstance(pathOrId,tuple):
+            pathdata = _getCategoryByPath(pathOrId,con)
+            if pathdata is not None:
+                pathdata = pathdata[-1]
+        else:
+            pathdata = _getCategoryById(pathOrId,con)
+
+        if pathdata is None:
+            raise FdbException('category does not exist')
+
+        con.execute(_GET_CATEGORY_COLUMN_QUERIES[column],(pathdata.id,))
+
+        if isinstance(pathOrId,tuple):
+            return pathOrId[0]
+        else:
+            return None
+
 def setCategoryInfo(pathOrId:int|tuple[str,...]|str,/,info:str):
     '''
     update the category info string
@@ -293,6 +319,24 @@ def setCategoryExpr(pathOrId:int|tuple[str,...]|str,/,expr:str|None):
     update the category expression for generating terms
     '''
     _setCategoryColumn(pathOrId,expr,'expr')
+
+def getCategoryInfo(pathOrId:int|tuple[str,...]|str,/) -> str|None:
+    '''
+    get category info string
+    '''
+    _getCategoryColumn(pathOrId,'info')
+
+def getCategoryTitle(pathOrId:int|tuple[str,...]|str,/) -> str|None:
+    '''
+    get category title string
+    '''
+    _getCategoryColumn(pathOrId,'title')
+
+def getCategoryExpr(pathOrId:int|tuple[str,...]|str,/) -> str|None:
+    '''
+    get category expression for generating terms
+    '''
+    _getCategoryColumn(pathOrId,'expr')
 
 def renameCategory(old:tuple[str,...]|str,new:tuple[str,...]|str,/):
     '''
@@ -476,10 +520,35 @@ def deleteCategoryNumber(path:tuple[str,...]|str,index:int,/):
                 f'deleted {pathToString(path)} index {index}')
             deleteNumberById(row[0])
 
-def getCategoryNumberInfo(path:tuple[str,...]|str,/,start:int,count:int) \
+def getCategoryNumberRows(path:tuple[str,...]|str,/,start:int,count:int=1) \
+        -> list[NumberRow]:
+    '''
+    gets row data for numbers in a category
+    '''
+    if isinstance(path,str):
+        path = stringToPath(path)
+
+    with FdbConnection() as con:
+        cat = _getCategoryByPath(path,con)
+        if cat is None:
+            raise FdbException('category does not exist')
+        cat = cat[-1]
+        ret: list[NumberRow] = []
+
+        cur = con.execute("select numbers.* from sequences join numbers "
+                          "on sequences.num_id = numbers.id "
+                          "where cat_id = %s and %s <= sequences.index and "
+                          "sequences.index < %s order by sequences.index;",
+                          (cat.id,start,start+count))
+        for row in cur.fetchall():
+            ret.append(NumberRow(row))
+
+    return ret
+
+def getCategoryNumberInfo(path:tuple[str,...]|str,/,start:int,count:int=1) \
         -> list[tuple[int,str,str|NumberRow,list[tuple[int,int,None|int]]]]:
     '''
-    gets all number table information for a category
+    gets number table information for a category
     each is (index,expr,int|number_row,list[factor,primality,id])
     '''
     if isinstance(path,str):
