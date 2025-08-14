@@ -396,7 +396,26 @@ def _addFactor(f:int,/) -> FactorRow:
                         f'({ret.value.bit_length()} bits)')
         return ret
 
-def _tryFactorById(i:int,fs:Iterable[int],/):
+def _tryFactorFactorById(i:int,fs:Iterable[int],/):
+    # try provided factors to make progress on a factor
+    with FdbConnection() as con:
+        for f in sorted(fs):
+
+            # get the composite factors
+            row = _getFactorById(i,con)
+            assert row is not None, 'internal error'
+            factors = _getFactorFactorizationHelper(row,con)
+            factors = [g for g,p,_ in factors
+                       if p == Primality.UNKNOWN or p == Primality.COMPOSITE]
+
+            # try to factor any composite
+            for g in factors:
+                try:
+                    addFactor(g,f)
+                except FdbException:
+                    pass
+
+def _tryFactorNumberById(i:int,fs:Iterable[int],/):
     # try provided factors to make progress on cofactor of number id i
     with FdbConnection() as con:
         for f in sorted(fs):
@@ -438,7 +457,7 @@ def addNumber(n:int,fs:Iterable[int]=[],/) -> tuple[bool,NumberRow]:
         # check if number already exists
         row = _getNumberByValue(n,con)
         if row is not None:
-            _tryFactorById(row.id,fs)
+            _tryFactorNumberById(row.id,fs)
             return (False,row)
         # note: checking this before insert into numbers should avoid (most?)
         # gaps in id column but this is not necessary
@@ -481,7 +500,7 @@ def addNumber(n:int,fs:Iterable[int]=[],/) -> tuple[bool,NumberRow]:
             logDatabaseDebugMessage(f'number {n} = {spfs} {cof}')
 
     # attempt to use large provided factors
-    _tryFactorById(row.id,fs_large)
+    _tryFactorNumberById(row.id,fs_large)
 
     # attempt to complete
     completeNumber(row.id)
@@ -812,7 +831,7 @@ def completeNumber(i:int,/) -> bool:
         cof_id: int|None = None
         if cof != 1:
             cof_id = _addFactor(cof).id
-            _tryFactorById(cof_id,[f for f,_,_ in factors])
+            _tryFactorFactorById(cof_id,[f for f,_,_ in factors])
 
         spf2b,spf4b,spf8b = spfsToFdbFormat(spfs)
         con.execute("update numbers set spf2 = %s, spf4 = %s, spf8 = %s, "
@@ -865,7 +884,7 @@ def factorNumberByIdWithFactors(i:int,fs:Iterable[int],/):
         if row is None:
             raise FdbException(f'no number with id {i} exists')
     if not row.complete:
-        _tryFactorById(i,fs)
+        _tryFactorNumberById(i,fs)
 
 def factorNumberByValueWithFactors(n:int,fs:Iterable[int],/):
     '''
@@ -876,7 +895,7 @@ def factorNumberByValueWithFactors(n:int,fs:Iterable[int],/):
         if row is None:
             raise FdbException(f'number does not exist in database')
     if not row.complete:
-        _tryFactorById(row.id,fs)
+        _tryFactorNumberById(row.id,fs)
 
 def _maxBitParams(bitlen:int|None,/) -> tuple[int,bytes]:
     # return byte length and largest first byte value

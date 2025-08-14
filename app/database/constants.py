@@ -8,7 +8,7 @@ class LogLevel:
     WARN = 1
     CRIT = 2
 
-TIME_FORMAT = '%Y-%m-%d %H:%M:%S'
+TIME_FORMAT = '%Y-%m-%d %H-%M-%S'
 
 class Primality:
     ''' primality constants '''
