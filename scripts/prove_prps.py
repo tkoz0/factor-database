@@ -12,7 +12,10 @@ from tqdm import tqdm
 
 import cypari2
 pari = cypari2.Pari()
-pari.allocatemem(0,2000000000)
+pari.allocatemem(sizemax=2**32)
+pari.default('parisizemax',2**32)
+pari.default('threadsizemax',2**28)
+pari.setrand(1000003)
 
 for line in tqdm(sys.stdin.read().splitlines()):
     i,v = map(int,line.split())
