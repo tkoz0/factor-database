@@ -19,6 +19,7 @@ the missing number patterns are identified to be these (decomposable):
 from fractions import Fraction
 import math
 import re
+from tqdm import tqdm
 
 from nrrpoly import NrrPoly
 
@@ -293,13 +294,15 @@ def createStandardNrrs(base:int,/,*,
 
                 # TODO maybe include AA..AABBAA..AA
                 if aaabbaaa_gen:
-                    nrrs.append(NrrPattern(base,f'{ad}*{bd}{bd}{ad}*',aaabbaaa_tag))
+                    nrrs.append(NrrPattern(base,f'{ad}*{bd}{bd}{ad}*',
+                                           aaabbaaa_tag))
 
                 for cv,cd in d1:
                     if cv != av and cv != bv:
                         # ABB..BBC
                         if abbbc_gen:
-                            nrrs.append(NrrPattern(base,f'{ad}{bd}*{cd}',abbbc_tag))
+                            nrrs.append(NrrPattern(base,f'{ad}{bd}*{cd}',
+                                                   abbbc_tag))
 
     if run_checks:
         for nrr in nrrs:
@@ -352,7 +355,7 @@ class NrrCollection:
         if not added:
             self.nrrsets.append([nrr])
 
-    def fullCheck(self,/):
+    def fullCheck(self,show_tqdm:bool,/):
         '''
         assert function for checking some conditions
         - quadratic time
@@ -362,7 +365,10 @@ class NrrCollection:
             for nrr in nrrset:
                 map2index[nrr] = i
         nrrlist = list(map2index)
-        for i,nrr1 in enumerate(nrrlist):
+        for i in (tqdm(range(len(nrrlist))) if show_tqdm
+                       else range(len(nrrlist))):
+            nrr1 = nrrlist[i]
+            nrr1.checkWithEval()
             for j in range(i,len(nrrlist)):
                 nrr2 = nrrlist[j]
                 assert nrr1.base == nrr2.base
@@ -460,7 +466,7 @@ class NrrCollection:
                      for factor in nrr_factors[1:])
 
     def factorByFormula(self,nrr:NrrPattern,/) \
-            -> tuple[None|tuple[Fraction,int,NrrPattern],...]:
+            -> tuple[Fraction,tuple[None|tuple[Fraction,int,NrrPattern],...]]:
         '''
         factors by equivalence and then creates a formula in terms of the
         representative element for each equivalence class
@@ -497,11 +503,11 @@ class NrrCollection:
                 quot,rem = divmod(mult.numerator*prod,mult.denominator)
                 assert rem == 0
                 assert quot == nrr(n)
-        return ret
+        return (nrr.mult,ret)
 
-def analyzeStdkmd():
+def generateStdkmd():
     '''
-    perform an analysis of nrr patterns on stdkmd.net
+    generates the nrr patterns on stdkmd.net
     '''
     raw_nrrs = createStandardNrrs(10,aaabbaaa_gen=False,run_checks=True)
     print(f'created {len(raw_nrrs)} raw nrr patterns')
@@ -514,9 +520,7 @@ def analyzeStdkmd():
     for nrr in raw_nrrs:
         nrrcol.add(nrr)
     print(f'found {len(nrrcol.nrrsets)} equivalence classes')
-    nrrcol.fullCheck()
-    #for nrrset in nrrcol.nrrsets:
-    #    print(f'    {' '.join(nrr.disp_stdkmd for nrr in nrrset)}')
+    nrrcol.fullCheck(False)
 
     # stdkmd patterns (11111 and 10001 have pages in different format)
     stdkmd_list = [
@@ -638,9 +642,9 @@ def analyzeStdkmd():
                 count_same += 1
 
     def _printSetInfo(nrr_selected):
-        factors = nrrcol.factorByFormula(nrr_selected)
+        mult,factors = nrrcol.factorByFormula(nrr_selected)
         if len(factors) >= 2:
-            out_str = f'    \033[93mfactors to: {nrr_selected.mult}'
+            out_str = f'    \033[93mfactors to: {mult}'
             for factor in factors:
                 if factor is None:
                     out_str += f' * (none)'
@@ -686,23 +690,211 @@ def analyzeStdkmd():
 
     print(f'selected same pattern for {count_same}/{count_all}')
 
+def _writeTableEqualWidth(rows:list[list[str]],/,*,
+                          spacing:int=4,widths:None|list[int]=None):
+    # helper function for nicer looking readable output
+    N = len(rows[0])
+    if widths is None:
+        widths = [max(len(rows[r][c]) for r in range(len(rows)))
+                  for c in range(N)]
+    for row in rows:
+        assert len(row) == len(widths)
+        s = (' '*spacing).join(f'{s:{widths[i]}}' for i,s in enumerate(row))
+        print(s)
+
+def generateFdb(base:int,nice_table:bool,show_tqdm:bool,/):
+    '''
+    generate nrrs for fdb.tkoz.me number selection
+    - sequence selection is inspired by stdkmd.net/nrr
+      - generalized to bases 2-36 for now
+    - writes the json object to output stream
+      - info about each raw pattern including formula and latex
+      - the equivalence classes and selected pattern from each
+      - factorizations of those which can be factored into others
+      - descriptions for each for the fdb table page
+    '''
+    import json
+    raw_nrrs = createStandardNrrs(base)
+    sys.stderr.write(f'created {len(raw_nrrs)} raw nrr patterns\n')
+    assert len(set(nrr.nice_str for nrr in raw_nrrs)) == len(raw_nrrs)
+    assert len(set(nrr.disp_stdkmd for nrr in raw_nrrs)) == len(raw_nrrs)
+    sys.stderr.write(f'deduplicating patterns\n')
+    nrrcol = NrrCollection(base)
+    for nrr in (tqdm(raw_nrrs) if show_tqdm else raw_nrrs):
+        nrrcol.add(nrr)
+    sys.stderr.write(f'found {len(nrrcol.nrrsets)} equivalence classes\n')
+    sys.stderr.write(f'running rigorous correctness check\n')
+    nrrcol.fullCheck(show_tqdm)
+    sys.stderr.write(f'completed rigorous correctness check\n')
+    if nice_table:
+        print(f'### base = {base}')
+        print()
+
+    sys.stderr.write(f'writing raw nrrs\n')
+    if nice_table:
+        print(f'### raw nrrs ({len(raw_nrrs)} total)')
+    csv_rows: list[list[str]] = [[
+        'regex',
+        'stdkmd',
+        'poly_mult',
+        'poly_coefs',
+        'expr',
+        'latex',
+        'first_few_terms'
+    ]]
+    for nrr in raw_nrrs:
+        if nice_table:
+            csv_rows.append([
+                nrr.re_str,
+                nrr.disp_stdkmd,
+                str(nrr.mult),
+                ' '.join(map(str,nrr.poly.coefs)),
+                nrr.exprString(),
+                nrr.latexString(),
+                ' '.join(str(nrr(n)) for n in range(5))
+            ])
+        else:
+            print(json.dumps({
+                'type': 'raw',
+                'pattern_regex': nrr.re_str,
+                'pattern_stdkmd': nrr.disp_stdkmd,
+                'poly_mult': nrr.mult.as_integer_ratio(),
+                'poly_coefs': nrr.poly.coefs,
+                'expr': nrr.exprString(),
+                'latex': nrr.latexString(),
+                'first_few_terms': [nrr(n) for n in range(5)]
+            },separators=(',',':')))
+    if nice_table:
+        _writeTableEqualWidth(csv_rows)
+
+    sys.stderr.write(f'writing nrr sets\n')
+    if nice_table:
+        print()
+        print(f'### nrr sets ({len(nrrcol.nrrsets)} total)')
+    csv_rows: list[list[str]] = [[
+        'main',
+        'regex',
+        'stdkmd',
+        'poly_mult',
+        'poly_coefs',
+        'poly_factors',
+        'expr',
+        'latex',
+        'factor_equiv'
+    ]]
+    for nrrset in nrrcol.nrrsets:
+        if nice_table:
+            for i,nrr in enumerate(nrrset):
+                mult,factors = nrrcol.factorByFormula(nrr)
+                assert mult == nrr.mult
+                factor_equiv = []
+                for factor in factors:
+                    assert factor is not None
+                    k,s,nrrf = factor
+                    factor_equiv.append((k,s,nrrf.re_str))
+                csv_rows.append([
+                    'yes' if i == 0 else 'no',
+                    nrr.re_str,
+                    nrr.disp_stdkmd,
+                    str(nrr.mult),
+                    ' '.join(map(str,nrr.poly.coefs)),
+                    ' '.join(f'({' '.join(map(str,p.coefs))})'
+                             for p in nrr.poly.factor()[1:]),
+                    nrr.exprString(),
+                    nrr.latexString(),
+                    ' '.join(f'({k}*[{regex}](n{s:+}))'
+                             for k,s,regex in factor_equiv)
+                ])
+        else:
+            if nice_table:
+                print()
+            print(json.dumps({
+                'type': 'main',
+                'choice_regex': nrrset[0].re_str,
+                'choice_stdkmd': nrrset[0].disp_stdkmd,
+                'choice_poly_mult': nrrset[0].mult.as_integer_ratio(),
+                'choice_poly_coefs': nrrset[0].poly.coefs,
+                'choice_poly_factors': [p.coefs
+                                        for p in nrrset[0].poly.factor()[1:]],
+                'choice_expr': nrrset[0].exprString(),
+                'choice_latex': nrrset[0].latexString()
+            },separators=(',',':')))
+            for nrr in nrrset:
+                mult,factors = nrrcol.factorByFormula(nrr)
+                assert mult == nrr.mult
+                factor_equiv = []
+                for factor in factors:
+                    # hopefully this assert never fails
+                    # all relevant sequences that can be factored
+                    # probably do factor into 2 other relevant sequences
+                    assert factor is not None
+                    k,s,nrrf = factor
+                    factor_equiv.append((k.as_integer_ratio(),s,nrrf.re_str))
+                print(json.dumps({
+                    'type': 'extra',
+                    'parent_regex': nrrset[0].re_str,
+                    'parent_stdkmd': nrrset[0].disp_stdkmd,
+                    'child_regex': nrr.re_str,
+                    'child_stdkmd': nrr.disp_stdkmd,
+                    'child_poly_mult': nrr.mult.as_integer_ratio(),
+                    'child_poly_coefs': nrr.poly.coefs,
+                    'child_poly_factors': [p.coefs
+                                           for p in nrr.poly.factor()[1:]],
+                    'child_expr': nrr.exprString(),
+                    'child_latex': nrr.latexString(),
+                    'child_poly_factors_equiv': factor_equiv
+                },separators=(',',':')))
+    if nice_table:
+        _writeTableEqualWidth(csv_rows)
+
 if __name__ == '__main__':
     import argparse
     import sys
 
     parser = argparse.ArgumentParser(prog='nearrepdigit.py',
-        description='find, analyze, and deduplicate near repdigit sequences in various bases')
+        description='generate, analyze, and deduplicate near repdigit sequences in various bases')
     parser.add_argument('-b','--base',type=int,help='number base system (2-36)')
     parser.add_argument('--stdkmd',action='store_true',help='analyze stdkmd.net patterns')
+    parser.add_argument('--fdb-json',action='store_true',help='output json format for fdb usage')
+    parser.add_argument('--fdb-table',action='store_true',help='neat table to preview for fdb data')
+    parser.add_argument('--tqdm',action='store_true',help='show tqdm progress bar')
     args = parser.parse_args()
+
+    count_flags = 0
+    if args.stdkmd:
+        count_flags += 1
+    if args.fdb_json:
+        count_flags += 1
+    if args.fdb_table:
+        count_flags += 1
+    if count_flags > 1:
+        sys.stderr.write(f'expected exactly 1 of the following: --stdkmd, --fdb-json, --fdb-table\n')
+        exit(1)
 
     if args.stdkmd:
         if args.base is not None and args.base != 10:
             sys.stderr.write(f'stdkmd.net is only base 10, use "--base 10" or do not specify\n')
             exit(1)
+        elif args.json_all:
+            sys.stderr.write(f'json output not supported for stdkmd analysis\n')
+            exit(1)
         else:
-            analyzeStdkmd()
+            generateStdkmd()
             exit(0)
+
+    elif args.fdb_json:
+        if args.base is None or not (2 <= args.base <= 36):
+            sys.stderr.write(f'expected --base with value 2-36\n')
+            exit(1)
+        generateFdb(args.base,False,args.tqdm)
+        exit(0)
+
+    elif args.fdb_table:
+        if args.base is None or not (2 <= args.base <= 36):
+            sys.stderr.write(f'expected --base with value 2-36\n')
+            exit(1)
+        generateFdb(args.base,True,args.tqdm)
+        exit(0)
 
     else:
         parser.print_usage(sys.stderr)
