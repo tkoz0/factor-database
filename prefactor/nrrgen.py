@@ -654,7 +654,9 @@ def generateStdkmd():
             out_str += f'\033[0m'
             print(out_str)
             out_str = f'    \033[93mexpr factor: {nrr_selected.mult}'
-            for factor in nrr_selected.poly.factor():
+            poly_factors = nrr_selected.poly.factor()
+            assert poly_factors[0] == NrrPoly(10,1)
+            for factor in poly_factors[1:]:
                 out_str += f' * ({factor})'
             out_str += f'\033[0m'
             print(out_str)
@@ -730,8 +732,8 @@ def generateFdb(base:int,nice_table:bool,show_tqdm:bool,/):
         print(f'### base = {base}')
         print()
 
-    sys.stderr.write(f'writing raw nrrs\n')
     if nice_table:
+        sys.stderr.write(f'writing raw nrrs\n')
         print(f'### raw nrrs ({len(raw_nrrs)} total)')
     csv_rows: list[list[str]] = [[
         'regex',
@@ -754,16 +756,17 @@ def generateFdb(base:int,nice_table:bool,show_tqdm:bool,/):
                 ' '.join(str(nrr(n)) for n in range(5))
             ])
         else:
-            print(json.dumps({
-                'type': 'raw',
-                'pattern_regex': nrr.re_str,
-                'pattern_stdkmd': nrr.disp_stdkmd,
-                'poly_mult': nrr.mult.as_integer_ratio(),
-                'poly_coefs': nrr.poly.coefs,
-                'expr': nrr.exprString(),
-                'latex': nrr.latexString(),
-                'first_few_terms': [nrr(n) for n in range(5)]
-            },separators=(',',':')))
+            pass # this is redundant output
+            #print(json.dumps({
+            #    'type': 'raw',
+            #    'pattern_regex': nrr.re_str,
+            #    'pattern_stdkmd': nrr.disp_stdkmd,
+            #    'poly_mult': nrr.mult.as_integer_ratio(),
+            #    'poly_coefs': nrr.poly.coefs,
+            #    'expr': nrr.exprString(),
+            #    'latex': nrr.latexString(),
+            #    'first_few_terms': [nrr(n) for n in range(5)]
+            #},separators=(',',':')))
     if nice_table:
         _writeTableEqualWidth(csv_rows)
 
@@ -808,18 +811,31 @@ def generateFdb(base:int,nice_table:bool,show_tqdm:bool,/):
         else:
             if nice_table:
                 print()
+            nrr = nrrset[0]
+            mult,factors = nrrcol.factorByFormula(nrr)
+            assert mult == nrr.mult
+            factor_equiv = []
+            for factor in factors:
+                # hopefully this assert never fails
+                # all relevant sequences that can be factored
+                # probably do factor into 2 other relevant sequences
+                assert factor is not None
+                k,s,nrrf = factor
+                factor_equiv.append((k.as_integer_ratio(),s,nrrf.re_str))
             print(json.dumps({
+                'base': base,
                 'type': 'main',
-                'choice_regex': nrrset[0].re_str,
-                'choice_stdkmd': nrrset[0].disp_stdkmd,
-                'choice_poly_mult': nrrset[0].mult.as_integer_ratio(),
-                'choice_poly_coefs': nrrset[0].poly.coefs,
-                'choice_poly_factors': [p.coefs
+                'main_regex': nrrset[0].re_str,
+                'main_stdkmd': nrrset[0].disp_stdkmd,
+                'main_poly_mult': nrrset[0].mult.as_integer_ratio(),
+                'main_poly_coefs': nrrset[0].poly.coefs,
+                'main_poly_factors': [p.coefs
                                         for p in nrrset[0].poly.factor()[1:]],
-                'choice_expr': nrrset[0].exprString(),
-                'choice_latex': nrrset[0].latexString()
+                'main_expr': nrrset[0].exprString(),
+                'main_latex': nrrset[0].latexString(),
+                'main_poly_factors_equiv': factor_equiv
             },separators=(',',':')))
-            for nrr in nrrset:
+            for nrr in nrrset[1:]:
                 mult,factors = nrrcol.factorByFormula(nrr)
                 assert mult == nrr.mult
                 factor_equiv = []
@@ -831,18 +847,19 @@ def generateFdb(base:int,nice_table:bool,show_tqdm:bool,/):
                     k,s,nrrf = factor
                     factor_equiv.append((k.as_integer_ratio(),s,nrrf.re_str))
                 print(json.dumps({
+                    'base': base,
                     'type': 'extra',
-                    'parent_regex': nrrset[0].re_str,
-                    'parent_stdkmd': nrrset[0].disp_stdkmd,
-                    'child_regex': nrr.re_str,
-                    'child_stdkmd': nrr.disp_stdkmd,
-                    'child_poly_mult': nrr.mult.as_integer_ratio(),
-                    'child_poly_coefs': nrr.poly.coefs,
-                    'child_poly_factors': [p.coefs
+                    'main_regex': nrrset[0].re_str,
+                    'main_stdkmd': nrrset[0].disp_stdkmd,
+                    'extra_regex': nrr.re_str,
+                    'extra_stdkmd': nrr.disp_stdkmd,
+                    'extra_poly_mult': nrr.mult.as_integer_ratio(),
+                    'extra_poly_coefs': nrr.poly.coefs,
+                    'extra_poly_factors': [p.coefs
                                            for p in nrr.poly.factor()[1:]],
-                    'child_expr': nrr.exprString(),
-                    'child_latex': nrr.latexString(),
-                    'child_poly_factors_equiv': factor_equiv
+                    'extra_expr': nrr.exprString(),
+                    'extra_latex': nrr.latexString(),
+                    'extra_poly_factors_equiv': factor_equiv
                 },separators=(',',':')))
     if nice_table:
         _writeTableEqualWidth(csv_rows)
@@ -851,7 +868,7 @@ if __name__ == '__main__':
     import argparse
     import sys
 
-    parser = argparse.ArgumentParser(prog='nearrepdigit.py',
+    parser = argparse.ArgumentParser(prog='nrrgen.py',
         description='generate, analyze, and deduplicate near repdigit sequences in various bases')
     parser.add_argument('-b','--base',type=int,help='number base system (2-36)')
     parser.add_argument('--stdkmd',action='store_true',help='analyze stdkmd.net patterns')
@@ -874,9 +891,6 @@ if __name__ == '__main__':
     if args.stdkmd:
         if args.base is not None and args.base != 10:
             sys.stderr.write(f'stdkmd.net is only base 10, use "--base 10" or do not specify\n')
-            exit(1)
-        elif args.json_all:
-            sys.stderr.write(f'json output not supported for stdkmd analysis\n')
             exit(1)
         else:
             generateStdkmd()
