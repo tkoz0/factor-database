@@ -80,7 +80,7 @@ class NrrPoly:
                 if abs(c) != 1:
                     t += f'{abs(c)}\\times'
                 if i == 1:
-                    t += f'{self.base}^n'
+                    t += f'{self.base}^{{n}}'
                 else:
                     t += f'{self.base}^{{{i}n}}'
             if i == len(self.poly.coefs)-1:
