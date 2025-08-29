@@ -1,5 +1,7 @@
 
 from fractions import Fraction
+import math
+from typing import Iterable
 
 from intpoly import IntPoly
 
@@ -20,6 +22,24 @@ def _basepow(base:int,frac:Fraction) -> int|None:
         basepow_exp += 1
         basepow_val *= base
     return None
+
+def _factor(n:int) -> list[int]:
+    # fully factors n with trial division
+    if n < 2:
+        return []
+    ret: list[int] = []
+    while n % 2 == 0:
+        n //= 2
+        ret.append(2)
+    d = 3
+    while d*d <= n:
+        while n % d == 0:
+            n //= d
+            ret.append(d)
+        d += 2
+    if n != 1:
+        ret.append(n)
+    return ret
 
 class NrrPoly:
     '''
@@ -124,9 +144,15 @@ class NrrPoly:
         return NrrPoly(self.base,*(self.poly-p.poly).coefs)
 
     def __mul__(self,p,/) -> 'NrrPoly':
+        if isinstance(p,int):
+            return NrrPoly(self.base,*(c*p for c in self.coefs))
         assert isinstance(p,NrrPoly)
         assert self.base == p.base
         return NrrPoly(self.base,*(self.poly*p.poly).coefs)
+
+    def __rmul__(self,m,/) -> 'NrrPoly':
+        assert isinstance(m,int)
+        return NrrPoly(self.base,*(c*m for c in self.coefs))
 
     def __floordiv__(self,p,/) -> 'NrrPoly':
         return divmod(self,p)[0]
@@ -222,6 +248,60 @@ class NrrPoly:
             if K != K2:
                 return None
         return K,s
+
+    def findPeriodicFactors(self,denominator:int,step_range:Iterable[int],/) \
+            -> dict[tuple[int,int],tuple[int,...]]:
+        '''
+        searches for periodic factors that can be found by composing the nrr
+        polynomial with a linear polynomial a*n+b
+        tries a values in the provided step_range and for each a value, tries
+        0 <= b < a
+        returns a mapping of (a,b) to the periodic prime factors
+        only adds to map if at least 1 prime factor was not found before
+        '''
+        if self.coefs == ():
+            return dict()
+        ret: dict[tuple[int,int],tuple[int,...]] = dict()
+        found_factors: set[int] = set()
+        for a in step_range:
+            for b in range(a):
+                # check if indexes a*n+b have a common factor (for any n)
+                # compose the polynomial with a*n+b in place of n
+                # for the ith term with coefficient c, factor out 10^(i*b)
+                # then replace 10^(i*a*n) with (10^(i*a*n) - 1) + 1
+                # this gives another constant term c*10^(i*b)
+                # then factor (10^(i*a) - 1) from (10^(i*a*n) - 1)
+                # the result is multiple terms with a known factor of each
+                constant_term = sum(c*10**(b*i)
+                                    for i,c in enumerate(self.coefs))
+                other_terms = [self.coefs[i]*10**(i*b)*(10**(i*a)-1)
+                               for i in range(1,len(self.coefs))]
+                g = math.gcd(constant_term,*other_terms)
+                g,r = divmod(g,denominator)
+                assert r == 0
+                if g > 1:
+                    factors_all = tuple(_factor(g))
+                    factors_new = tuple(f for f in factors_all
+                                        if f not in found_factors)
+                    if factors_new != ():
+                        ret[(a,b)] = factors_all
+                    for f in factors_new:
+                        found_factors.add(f)
+                for i in range(10):
+                    assert self(a*i+b) % g == 0
+        return ret
+
+    def composeLinear(self,a:int,b:int,/) -> 'NrrPoly':
+        '''
+        composes this nrr polynomial with a linear polynomial a*n+b
+        '''
+        assert a >= 0 and b >= 0
+        ret = NrrPoly(self.base)
+        for i,c in enumerate(self.coefs):
+            ret += c * self.base**(i*b) * NrrPoly(self.base,0,1)**(a*i)
+        for i in range(10):
+            assert self(a*i+b) == ret(i)
+        return ret
 
 if __name__ == '__main__':
     # NrrPoly testing
