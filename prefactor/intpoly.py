@@ -101,6 +101,12 @@ class IntPoly:
             n_pow *= n
         return ret
 
+    def compose(self,p:'IntPoly') -> 'IntPoly':
+        ret = IntPoly()
+        for i,c in enumerate(self.coefs):
+            ret += c * p**i
+        return ret
+
     def __eq__(self,p,/) -> bool:
         assert isinstance(p,IntPoly)
         return self.coefs == p.coefs
@@ -129,6 +135,8 @@ class IntPoly:
         return IntPoly(*map(lambda x,y: x - y, cs1, cs2))
 
     def __mul__(self,p,/) -> 'IntPoly':
+        if isinstance(p,int):
+            return IntPoly(*(c*p for c in self.coefs))
         assert isinstance(p,IntPoly)
         if self.coefs == () or p.coefs == ():
             return IntPoly()
@@ -137,6 +145,10 @@ class IntPoly:
             for j in range(len(p.coefs)):
                 ret[i+j] += self.coefs[i] * p.coefs[j]
         return IntPoly(*ret)
+
+    def __rmul__(self,m,/) -> 'IntPoly':
+        assert isinstance(m,int)
+        return IntPoly(*(c*m for c in self.coefs))
 
     def __floordiv__(self,p,/) -> 'IntPoly':
         return divmod(self,p)[0]
