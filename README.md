@@ -105,12 +105,15 @@ TODO improve this section
   - rework the numbers per page stuff for browsing tables
   - stats page (stats.py)
   - recent page (recent.py)
+  - show primes with a green background in the tables
 
 - database
   - attempt to submit new factors to factordb.com
   - consider switching to something like bcrypt for user auth
   - setup a procedure for storing/updating table/category descriptions
     - store text files with descriptions in this repo
+  - function to use known factorization to factor another number
+    - for example when A and B are already factored and we want to add A\*B
 
 - devops
   - consider creating a docker container

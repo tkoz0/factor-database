@@ -171,6 +171,103 @@ method of constructing
 - pi^pi^pi
 - pi^e
 
+# other constants
+
+- golomb-dickman constant
+- tau
+- sqrt(2), sqrt(3), ...
+- cbrt(2), cbrt(3), ...
+- 2^(1/12)
+- supergolden ratio (real root of x^3=x^2+1)
+- sqrt(2+sqrt(2)) (hexagonal lattice connective constant)
+- kepler-bouwkamp constant
+- wallis's constant (real root of x^3-2x-5=0)
+- erdos-borwein constant
+- omega constant
+- laplace limit
+- soldner constant
+- second hermite constant (2/sqrt(3))
+- gauss's constant
+- ramanujan's constant (e^(pi*sqrt(163)))
+- glaisher-kinkelin constant
+- dottie number (real root of cos(x)=x)
+- meissel-mertens constant
+- universal parabolic constant (log(1+sqrt(2))+sqrt(2))
+- cahen's constant
+- gelfond's constant (e^pi)
+- gelfond-schneider constant (2^sqrt(2))
+- second favard constant (pi^2/8)
+- golden angle
+- sierpinski's constant
+- laudau-ramanujan constant
+- first nielsen-ramanujan constant (zeta(2)/2)
+- gieseking constant
+- bernstein's constant
+- tribonacci constant (real root of x^3-x^2-x-1=0)
+- brun's constant
+- twin primes constant
+- bloch's constant
+- laudau's constant
+- laudau's third constant
+- lebesgue constants
+- feller-tornier constant
+- champernowne constants
+- salem constant
+- khinchin's constant
+- levy's constants
+- copeland-erdos constant
+- mills's constant
+- gompertz constant
+- de bruijn-newman constant
+- van der pauw constant (pi/log(2))
+- magic angle (arctan(sqrt(2)))
+- artin's constant
+- porter's constant
+- lochs constant (6log(2)log(10)/pi^2)
+- devicci's tesseract constant
+- lieb's square ice constant ((4/3)^(2/3)=8/(3sqrt(3)))
+- niven's constant
+- stephens's constant
+- regular paperfolding sequence
+- reciprocal fibonacci constant
+- chvatal-sankoff constant
+- feigenbaum constant
+- chaitin's constants
+- robbins constant
+- weierstrass constant
+- fransen-robinson constant
+- feigenbaum constant
+- second du bois-reymond constant
+- erdos-tenenbaum-ford constant
+- conway's constant
+- hafner-sarnak-mccurley constant
+- backhouse's constant
+- viswanath constant
+- komornik-loreti constant
+- embree-trefethen constant
+- heath-brown-moroz constant
+- mrb constant
+- prime constant
+- somos's quadratic recurrence constant
+- foias constant
+- logarithmic capacity of the unit disk
+- taniguchi constant
+- bernoulli numbers
+- gregory coefficients
+- hermite constants
+- hafner-sarnak-mccurley constants
+- stieltjes constants
+- favard constants
+- generalized brun's constants
+- lagrange numbers
+- feller's coin tossing constants
+- stoneham numbers
+- beraha constants
+- chvatal-sankoff constants
+- hyperharmonic numbers
+- gregory numbers
+- metallic means
+
 # ideas from oeis.org
 
 - A000055 number of trees with n unlabeled nodes
