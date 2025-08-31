@@ -231,6 +231,10 @@ def createCategory(path:tuple[str,...]|str,/,is_table:bool,
             raise FdbException('parent does not exist')
         parent = parent[-1]
 
+        # make sure parent is a category
+        if parent.is_table:
+            raise FdbException('parent must be a category')
+
         # create subcategory
         cur = con.execute("insert into categories "
                           "(parent_id,name,title,is_table,info) "
