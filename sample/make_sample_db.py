@@ -66,7 +66,11 @@ if not args.no_recreate_config:
 
 # import afterward because it creates a connection to the database
 # requires database setup to be done and config.json to exist
-import app.database as db
+#import app.database as db
+import app.database.categories as dbcat
+import app.database.users as dbuser
+import app.database.numbers as dbnum
+from app.database.helpers import FdbException
 
 # ==============================================================================
 
@@ -216,8 +220,8 @@ def addnum1(n:int,fs:list[int]=[]):
     try:
         # trial division up to 2^16 for everything
         _,spf = findSmallPrimeFactors(n)
-        db.addNumber(n,spf+fs)
-    except db.FDBException as e:
+        dbnum.addNumber(n,spf+fs)
+    except FdbException as e:
         print(f'number {n} already in database: {e}')
 
 # individual numbers
@@ -243,21 +247,21 @@ if args.individual_numbers:
 def addfac(n:int,f:int):
     # add factor result, ignore errors
     try:
-        db.addFactor(n,f)
-    except db.FDBException as e:
+        dbnum.addFactor(n,f)
+    except FdbException as e:
         print(f'factor result n={n},f={f} not added: {e}')
 
 # sample users
 if not args.no_users:
-    db.createUser('tkoz','tkoz@example.com','tkoz','Tom K')
-    db.setUserAdmin('tkoz',True)
-    db.createUser('admin','admin@example.com','admin','Administrator')
-    db.setUserAdmin('admin',True)
+    dbuser.createUser('tkoz','tkoz@example.com','tkoz','Tom K')
+    dbuser.setUserAdmin('tkoz',True)
+    dbuser.createUser('admin','admin@example.com','admin','Administrator')
+    dbuser.setUserAdmin('admin',True)
 
-    db.createUser('user','user@example.com','user','User User')
-    db.createUser('test','test@example.com','test','Test Test')
-    db.createUser('bkoz','bkoz@example.com','bkoz','Backup Koz')
-    db.setUserDisabled('bkoz',True)
+    dbuser.createUser('user','user@example.com','user','User User')
+    dbuser.createUser('test','test@example.com','test','Test Test')
+    dbuser.createUser('bkoz','bkoz@example.com','bkoz','Backup Koz')
+    dbuser.setUserDisabled('bkoz',True)
 
     for short,long in [
         ('aishia','Aishia'),
@@ -273,62 +277,66 @@ if not args.no_users:
         ('yuuka','Yuuka Hayase'),
         ('noa','Noa Ushio')
     ]:
-        db.createUser(short,f'{short}@example.com',short,long)
+        dbuser.createUser(short,f'{short}@example.com',short,long)
 
-    db.setUserAdmin('aishia',True)
-    db.setUserAdmin('yue',True)
-    db.setUserAdmin('yuuka',True)
+    dbuser.setUserAdmin('aishia',True)
+    dbuser.setUserAdmin('yue',True)
+    dbuser.setUserAdmin('yuuka',True)
 
 # sample categories
 if not args.no_categories:
-    db.setCategoryTitle((),'Factor Tables')
-    db.setCategoryInfo((),'<p>This is the root of the factor tables.</p>\n'
+    dbcat.setCategoryTitle((),'Factor Tables')
+    dbcat.setCategoryInfo((),'<p>This is the root of the factor tables.</p>\n'
                        '<p>Factor tables are structured like a filesystem tree '
                        'with categories(directories) and tables(files).</p>\n')
 
-    db.createCategory(('repunit',),False,'Repunit',
+    dbcat.createCategory(('repunit',),False,'Repunit',
                       'These are numbers containing a single repeated digit.')
     for b in range(2,17):
-        db.createCategory(('repunit',f'base{b}'),True,f'Base {b} Repunit',
+        dbcat.createCategory(('repunit',f'base{b}'),True,f'Base {b} Repunit',
                           f'Base {b} repunits have the form ({b}^n-1)/{b-1}')
 
-    db.createCategory(('factorial',),False,
+    dbcat.createCategory(('factorial',),False,
                       'Factorial','Numbers close to factorials.')
-    db.createCategory(('factorial','+1'),True,
+    dbcat.createCategory(('factorial','+1'),True,
                       'Factorial Plus 1','n!+1')
-    db.createCategory(('factorial','-1'),True,
+    dbcat.createCategory(('factorial','-1'),True,
                       'Factorial Minus 1','n!-1')
 
-    db.createCategory(('near_repdigit',),False,
+    dbcat.createCategory(('near_repdigit',),False,
                       'Near Repdigit',
                       'Numbers with almost a single repeating digit.')
-    db.createCategory(('near_repdigit','base2'),False,
+    dbcat.createCategory(('near_repdigit','base2'),False,
                       'Near Repdigit Base 2','')
-    db.createCategory(('near_repdigit','base10'),False,
+    dbcat.createCategory(('near_repdigit','base10'),False,
                       'Near Repdigit Base 10','')
-    db.createCategory(('near_repdigit','base2','100..001'),True,
+    dbcat.createCategory(('near_repdigit','base2','100..001'),True,
                       'Near Repdigit Base 2: 100..001','nth term = 2^n+1')
-    db.createCategory(('near_repdigit','base10','100..001'),True,
+    dbcat.createCategory(('near_repdigit','base10','100..001'),True,
                       'Near Repdigit Base 10: 100..001','nth term = 10^n+1')
-    db.createCategory(('near_repdigit','base10','100..003'),True,
+    dbcat.createCategory(('near_repdigit','base10','100..003'),True,
                       'Near Repdigit Base 10: 100..003','nth term = 10^n+3')
-    db.createCategory(('near_repdigit','base10','100..007'),True,
+    dbcat.createCategory(('near_repdigit','base10','100..007'),True,
                       'Near Repdigit Base 10: 100..007','nth term = 10^n+7')
-    db.createCategory(('near_repdigit','base10','100..009'),True,
+    dbcat.createCategory(('near_repdigit','base10','100..009'),True,
                       'Near Repdigit Base 10: 100..009','nth term = 10^n+9')
 
-    db.createCategory(('mersenne',),True,'Mersenne','2^p-1 where p is prime')
-    db.createCategory(('fibonacci',),True,'Fibonacci','fibonacci numbers')
-    db.createCategory(('lucas',),True,'Lucas','lucas numbers')
+    dbcat.createCategory(('mersenne',),True,'Mersenne','2^p-1 where p is prime')
+    dbcat.createCategory(('fibonacci',),True,'Fibonacci','fibonacci numbers')
+    dbcat.createCategory(('lucas',),True,'Lucas','lucas numbers')
 
-    db.createCategory(('empty',),False,'','')
-    db.createCategory(('test',),False,'test title','test category')
-    db.createCategory(('test','ecat'),False,'empty category','empty category')
-    db.createCategory(('test','etab'),True,'empty table','empty table')
+    dbcat.createCategory(('empty',),False,'','')
+    dbcat.createCategory(('test',),False,'test title','test category')
+    dbcat.createCategory(('test','ecat'),False,'empty category','empty category')
+    dbcat.createCategory(('test','etab'),True,'empty table','empty table')
+
+    dbcat.createCategory(('stdkmd-nrr'),False,'Near Repdigit Related','')
+    for i in range(2,10+1):
+        dbcat.createCategory(('stdkmd-nrr',str(i)),False,f'Base {i}','')
 
     def addnum2(path:tuple[str,...],index:int,value:int,expr:str):
         addnum1(value)
-        db.createCategoryNumber(path,index,value,expr)
+        dbcat.createCategoryNumber(path,index,value,expr)
 
     # fill some categories with sample numbers
     if not args.no_numbers:
@@ -397,13 +405,13 @@ if not args.no_categories:
 
         def getnumid(n:int) -> int:
             # get id for a number (must exist)
-            row = db.getNumberByValue(n)
+            row = dbnum.getNumberByValue(n)
             assert row is not None
             return row.id
 
         def getfacid(f:int) -> int:
             # get id for a factor (must exist)
-            row = db.getFactorByValue(f)
+            row = dbnum.getFactorByValue(f)
             assert row is not None
             return row.id
 
@@ -411,7 +419,7 @@ if not args.no_categories:
         if not args.no_primes:
             def setprime(n:int):
                 try:
-                    db.setFactorPrime(getfacid(n),True)
+                    dbnum.setFactorPrime(getfacid(n),True)
                 except:
                     pass
             # 2^179-1
@@ -435,7 +443,7 @@ if not args.no_categories:
         if not args.no_composites:
             def setcomp(n:int):
                 try:
-                    db.setFactorComposite(getfacid(n),True)
+                    dbnum.setFactorComposite(getfacid(n),True)
                 except:
                     pass
             # 2^307-1
