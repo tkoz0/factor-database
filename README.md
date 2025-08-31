@@ -114,6 +114,7 @@ TODO improve this section
     - store text files with descriptions in this repo
   - function to use known factorization to factor another number
     - for example when A and B are already factored and we want to add A\*B
+  - remove secondary factorizations
 
 - devops
   - consider creating a docker container
