@@ -421,7 +421,7 @@ if __name__ == '__main__':
             if len(nrrset.poly_factors) > 1: # factorable
                 per_digit_factors[s[0]].append(_nrrfactorstr(nrrset))
                 for nrr in nrrset.equiv_nrrs:
-                    per_digit_factors[s[0]].append(_nrrfactorstr(nrr))
+                    per_digit_factors[nrr.stdkmd[0]].append(_nrrfactorstr(nrr))
             else: # not factorable
                 detail = makePageInfo(nrrset)
                 print(f"dbcat.setCategoryTitle('{digit_paths[s[0]]}/{s}',"
