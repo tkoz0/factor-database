@@ -178,10 +178,10 @@ class NrrPattern:
         latexstr = self.poly.latex()
         if denom == 1:
             return latexstr if numer == 1 else \
-                f'{numer}\\times\\left({latexstr}\\right)'
+                f'{numer}\\cdot\\left({latexstr}\\right)'
         else:
             return f'{{{latexstr}\\over{denom}}}' if numer == 1 else \
-                f'{numer}\\times{{{latexstr}\\over{denom}}}'
+                f'{numer}\\cdot{{{latexstr}\\over{denom}}}'
 
     def checkWithEval(self,nmax:int=10,writeResults:bool=False):
         ''' an assert function to make sure the expression generator works '''
@@ -703,6 +703,44 @@ def _writeTableEqualWidth(rows:list[list[str]],/,*,
         assert len(row) == len(widths)
         s = (' '*spacing).join(f'{s:{widths[i]}}' for i,s in enumerate(row))
         print(s)
+
+# nrr counts
+# base  raw_count  dedup_count
+#    2          5            5
+#    3         24           17
+#    4         63           41
+#    5        128           83
+#    6        225          133
+#    7        360          216
+#    8        539          330
+#    9        768          456
+#   10       1053          611
+#   11       1400          842
+#   12       1815         1050
+#   13       2304         1376
+#   14       2873         1700
+#   15       3528         2014
+#   16       4275         2489
+#   17       5120         3095
+#   18       6069         3544
+#   19       7128         4264
+#   20       8303         4840
+#   21       9600         5539
+#   22      11025         6464
+#   23      12584         7575
+#   24      14283         8291
+#   25      16128         9499
+#   26      18125        10762
+#   27      20280        11941
+#   28      22599        13159
+#   29      25088        15111
+#   30      27753        16068
+#   31      30600        18332
+#   32      33635        20030
+#   33      36864        21693
+#   34      42093        23904
+#   35      43928        25723
+#   36      47775        27728
 
 def generateFdb(base:int,nice_table:bool,show_tqdm:bool,/):
     '''
