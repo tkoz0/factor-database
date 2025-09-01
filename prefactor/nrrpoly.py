@@ -98,7 +98,7 @@ class NrrPoly:
                 t += str(abs(c))
             else:
                 if abs(c) != 1:
-                    t += f'{abs(c)}\\times'
+                    t += f'{abs(c)}\\cdot'
                 if i == 1:
                     t += f'{self.base}^{{n}}'
                 else:
@@ -329,8 +329,8 @@ if __name__ == '__main__':
     # latex
     assert NP().latex() == '0'
     assert NP(-3).latex() == '-3'
-    assert NP(-2,-3,6).latex() == '6\\times10^{2n}-3\\times10^n-2'
-    assert NP(7,1,-4,-1).latex() == '-10^{3n}-4\\times10^{2n}+10^n+7'
+    assert NP(-2,-3,6).latex() == '6\\cdot10^{2n}-3\\cdot10^n-2'
+    assert NP(7,1,-4,-1).latex() == '-10^{3n}-4\\cdot10^{2n}+10^n+7'
 
     # bool
     assert bool(NP()) == False
