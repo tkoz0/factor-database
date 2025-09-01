@@ -330,9 +330,11 @@ if not args.no_categories:
     dbcat.createCategory(('test','ecat'),False,'empty category','empty category')
     dbcat.createCategory(('test','etab'),True,'empty table','empty table')
 
-    dbcat.createCategory(('stdkmd-nrr'),False,'Near Repdigit Related','')
-    for i in range(2,10+1):
-        dbcat.createCategory(('stdkmd-nrr',str(i)),False,f'Base {i}','')
+    nrr_max_base = 12
+    dbcat.createCategory(('nrr'),False,'Near Repdigit Related','')
+    for i in range(2,nrr_max_base+1):
+        dbcat.createCategory(('nrr',str(i)),False,f'Base {i}','')
+    dbcat.reorderSubcategories('nrr',[str(i) for i in range(2,nrr_max_base+1)])
 
     def addnum2(path:tuple[str,...],index:int,value:int,expr:str):
         addnum1(value)
