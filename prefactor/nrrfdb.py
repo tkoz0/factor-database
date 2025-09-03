@@ -306,6 +306,8 @@ if __name__ == '__main__':
                         help='list patterns in stdkmd 5 digit format')
     parser.add_argument('--python-prefactor-dict',action='store_true',
                         help='python dict with lambdas, latex strings, etc')
+    parser.add_argument('--prefactor-sqlite',action='store_true',
+                        help='statements to insert prefactor info for db')
     parser.add_argument('--python-make-categories',action='store_true',
                         help='output code to make the database categories')
     parser.add_argument('--python-set-descriptions',action='store_true',
@@ -318,6 +320,8 @@ if __name__ == '__main__':
         flag_count += 1
     if args.python_prefactor_dict:
         flag_count += 1
+    if args.prefactor_sqlite:
+        flag_count += 1
     if args.python_make_categories:
         flag_count += 1
     if args.python_set_descriptions:
@@ -327,6 +331,7 @@ if __name__ == '__main__':
         sys.stderr.write('expected exactly one of:\n'
                          '  --pattern-list\n'
                          '  --python-prefactor-dict\n'
+                         '  --prefactor-sqlite\n'
                          '  --python-make-categories\n'
                          '  --python-set-descriptions\n')
         exit(1)
@@ -338,6 +343,9 @@ if __name__ == '__main__':
             if len(nrrset.poly_factors) == 1:
                 print(nrrset.stdkmd)
 
+    # parsing this hard coded dictionary with a lot of lambdas is impractical
+    # for larger bases (combining all 2-36 takes 30sec to load and 4GB of RAM)
+    # instead read the nrr data file to get the lambdas for a single pattern
     if args.python_prefactor_dict:
         print(f'nrr_data_base_{args.base} = {{')
         for nrrset in nrrdata:
@@ -360,6 +368,41 @@ if __name__ == '__main__':
                 factors_str = ' * '.join(f'({f})' for f in nrrset.poly_factors)
                 print(f'  # factors to: {nrrset.poly_mult} * {factors_str}')
         print(f'}}')
+
+    if args.prefactor_sqlite:
+        print("create table if not exists nrr (")
+        print("    base integer,")
+        print("    pattern text,")
+        print("    expr text,")
+        print("    latex text,")
+        print("    path text,")
+        print("    primary key (base,pattern)")
+        print(") strict;")
+        print()
+        print("insert into nrr (base,pattern,expr,latex,path) values")
+        value_tuples: list[str] = []
+        for nrrset in nrrdata:
+            if len(nrrset.poly_factors) > 1:
+                continue
+            expr = nrrset.expr # already formatted as python expression
+            latex = nrrset.latex # need to reformat as f string
+            latex = latex.replace('{','{{')
+            latex = latex.replace('}','}}')
+            latex = latex.replace('^{{n}}','^{{{n}}}')
+            latex = latex.replace('^{{2n}}','^{{{2*n}}}')
+            latex = latex.replace('\\','\\\\')
+            path = f'nrr/{args.base}/{nrrset.stdkmd[0]}/{nrrset.stdkmd}' if args.base > 6 \
+                else f'nrr/{args.base}/{nrrset.stdkmd}'
+            # making sql like this is bad but this is not arbitrary user input
+            value_tuples.append(f"({args.base},'{nrrset.stdkmd}','{expr}','f''{latex}''','{path}')")
+        for i,value_tuple in enumerate(value_tuples):
+            print("    " + value_tuple + ',;'[i == len(value_tuples)-1])
+        print()
+        print("vacuum;")
+    # # the following command can be used to create the database file
+    # for b in $(seq 2 36); do cat nrrdata_$b.jsonl
+    # | python3 nrrfdb.py -b $b --prefactor-sqlite
+    # | sqlite3 nrrall.db; done
 
     # for bases 2-6, put all patterns in the same list
     # for bases 7-36, split up by starting digit
