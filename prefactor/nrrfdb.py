@@ -403,6 +403,16 @@ if __name__ == '__main__':
     # for b in $(seq 2 36); do cat nrrdata_$b.jsonl
     # | python3 nrrfdb.py -b $b --prefactor-sqlite
     # | sqlite3 nrrall.db; done
+    #
+    # # then a list of commands to run for prefactoring can be made from
+    # for b in $(seq 2 36)
+    #     do
+    #     for p in $(python3 nrrfdb.py -b $b --pattern-list < nrrdata/nrrdata_$b.jsonl)
+    #         do echo ./dbfactor_nrr.py $b $p \> out_nrr_${b}_${p}.jsonl.tmp  \
+    #             \&\& mv out_nrr_2_${p}.jsonl{.tmp,} >> NRR_ALL.sh
+    #     done \
+    #     && echo >> NRR_ALL.sh
+    # done
 
     # for bases 2-6, put all patterns in the same list
     # for bases 7-36, split up by starting digit
