@@ -330,7 +330,7 @@ if not args.no_categories:
     dbcat.createCategory(('test','ecat'),False,'empty category','empty category')
     dbcat.createCategory(('test','etab'),True,'empty table','empty table')
 
-    nrr_max_base = 12
+    nrr_max_base = 36
     dbcat.createCategory(('nrr'),False,'Near Repdigit Related','')
     for i in range(2,nrr_max_base+1):
         dbcat.createCategory(('nrr',str(i)),False,f'Base {i}','')
