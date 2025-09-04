@@ -409,7 +409,7 @@ if __name__ == '__main__':
     #     do
     #     for p in $(python3 nrrfdb.py -b $b --pattern-list < nrrdata/nrrdata_$b.jsonl)
     #         do echo ./dbfactor_nrr.py $b $p \> out_nrr_${b}_${p}.jsonl.tmp  \
-    #             \&\& mv out_nrr_2_${p}.jsonl{.tmp,} >> NRR_ALL.sh
+    #             \&\& mv out_nrr_${b}_${p}.jsonl{.tmp,} >> NRR_ALL.sh
     #     done \
     #     && echo >> NRR_ALL.sh
     # done
