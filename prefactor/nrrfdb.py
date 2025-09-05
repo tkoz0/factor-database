@@ -453,9 +453,15 @@ if __name__ == '__main__':
                 d = DIGITS[i]
                 print(f"dbcat.reorderSubcategories({repr(digit_paths[d])},\n"
                       f"    {repr(list(sorted(s for s in all_patterns if s[0] == d)))})")
+            print()
+            print(f"dbcat.reorderSubcategories('nrr/{args.base}',\n"
+                  f"    {repr(list(DIGITS[1:args.base]))})")
         else:
             print(f"dbcat.reorderSubcategories('nrr/{args.base}',\n"
                   f"    {repr(list(sorted(all_patterns)))})")
+    # # example usage
+    # for b in $(seq 2 10); do python3 ./prefactor/nrrfdb.py -b $b \
+    # --python-make-categories < ./prefactor/nrrdata_$b.jsonl | python3 -; done
 
     if args.python_set_descriptions:
         print('import app.database.categories as dbcat')
@@ -510,3 +516,6 @@ if __name__ == '__main__':
             for i,data in enumerate(per_digit_factors_list):
                 print(f"    {repr(data + ('</p>' if i == last_i else '') + '\n')}"
                       + (')' if i == last_i else ''))
+    # # example usage
+    # for b in $(seq 2 10); do python3 ./prefactor/nrrfdb.py -b $b \
+    # --python-set-descriptions < ./prefactor/nrrdata_$b.jsonl | python3 -; done
